@@ -1,0 +1,4 @@
+frmbase
+matplotlib
+gdal
+requests

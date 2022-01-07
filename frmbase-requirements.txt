@@ -1,0 +1,15 @@
+#Requirements for the base package.
+#This package MAY NOT depend on matplotlib
+colorama
+numpy
+gitpython
+scipy
+pandas
+tqdm
+requests
+#These should maybe belong in a dummy "Dev" package
+pyflakes
+ipdb
+pytest
+pytest-cov
+black

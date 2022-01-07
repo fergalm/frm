@@ -1,4 +1,0 @@
-frmbase
-matplotlib
-gdal
-requests

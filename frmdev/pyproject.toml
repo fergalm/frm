@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "frmdev"
+version = "0.1.0"
+description = ""
+authors = ["Fergal <fergal.mullally@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pytest = "^5.2"
+pyflakes = "*"
+pytest-cov = "*"
+black = "*"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

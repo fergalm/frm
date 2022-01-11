@@ -227,6 +227,7 @@ def load_engine_dict():
 def linear_apply(pfunc, tasks, n_simul, timout_sec, on_error, reporter):
     """The simplest engine. Run tasks serially"""
     results = []
+    reporter(-1, len(tasks))  #Shows 0 tasks complete
     for i, task in enumerate(tasks):
         results.append(pfunc(*task))
         reporter(i, len(tasks))
@@ -239,6 +240,7 @@ def thread_apply(pfunc, tasks, n_thread, timeout_sec, on_error, reporter):
         n_thread = 5
 
     results = []
+    reporter(-1, len(tasks))  #Shows 0 tasks complete
     with concurrent.futures.ThreadPoolExecutor(n_thread) as executor:
         future_list = map(lambda x: executor.submit(pfunc, *x), tasks)
         future_list = list(future_list)
@@ -262,6 +264,7 @@ def parallel_apply(pfunc, tasks, n_cpu, timeout_sec, on_error, reporter):
         n_cpu = multiprocessing.cpu_count() - 1
 
     results = []
+    reporter(-1, len(tasks))  #Shows 0 tasks complete
     with multiprocessing.Pool(n_cpu, maxtasksperchild=1) as pool:
         process_list  = map(lambda x: pool.apply_async(pfunc, x), tasks)
         process_list = list(process_list)  #Start the tasks running

@@ -1,3 +1,4 @@
+from ipdb import set_trace as idebug
 import pandas as pd
 import numpy as np
 import re
@@ -12,6 +13,14 @@ modify a dataframe in a clean fashion
 class AbstractStep:
     pass
 
+    def __str__(self):
+        classname = str(self.__class__)[:-2].split()[-1][1:]
+        strr = f"<{classname} "
+        for k in self.__dict__:
+            strr += f"{k}={self.__dict__[k]}, "
+        strr += ">"
+        return strr
+    
 
 def runPipeline(tasks, df=None):
     """ """
@@ -28,6 +37,25 @@ def runPipeline(tasks, df=None):
             raise e
 
     return df
+
+def pipelineAsString(pipeline):
+    """Create a string describing the steps in a pipeline
+
+    Useful for documenting the operations applied to a dataframe
+
+    Inputs
+    ----------
+    pipeline
+        (list) A list of objects AbstractStep (or derived) classes
+
+    Returns
+    --------
+        A string
+    """
+    out = []
+    for p in pipeline:
+        out.append(str(p))
+    return "\n".join(out)
 
 
 class ApplyFunc(AbstractStep):
@@ -104,7 +132,10 @@ class Debugger(AbstractStep):
 
 class DropDuplicates(AbstractStep):
     def __init__(self, *cols):
+        if len(cols) == 0:
+            cols = None
         self.cols = cols
+
 
     def apply(self, df):
         return df.drop_duplicates(self.cols, keep="first")

@@ -101,8 +101,8 @@ def create_watermark_text(level=0):
     time = dt.datetime.strftime( dt.datetime.now(), '%Y-%m-%d %H:%M')
 
     try:
-        import frm.meta
-        git_meta = frm.meta.get_git_info(full_fn)
+        import frmbase.meta as meta
+        git_meta = meta.get_git_info(full_fn)
         git_hash = git_meta['__git_branch_commit_sha__']
         git_status = git_meta['__git_commit_status__'][0] #One char
         git_hash = "%s (%s)" %(git_hash, git_status)

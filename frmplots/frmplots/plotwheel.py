@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import re
 
-import frm.plots as fplots
+import frmplots.plots as fplots
 
 
 class PlotWheel(object):

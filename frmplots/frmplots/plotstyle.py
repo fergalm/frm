@@ -73,6 +73,13 @@ def add_watermark(level=0):
                     add_watermark(1)  #Watermark says $USER code.py:foo ...
     """
 
+    text = create_watermark_text(level+1)
+    ax = mp.gca()
+    f = mp.gcf()
+    ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
+
+    
+def create_watermark_text(level=0):
     user = os.environ['USER']
 
     full_fn = '/.'
@@ -104,12 +111,7 @@ def add_watermark(level=0):
         git_hash = ""
 
     text = "%s %s %s %s" % (user, fn, time, git_hash)
-
-    ax = mp.gca()
-    f = mp.gcf()
-    ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
-
-
+    return text 
 
 
 def mark_as_draft(text="Draft"):

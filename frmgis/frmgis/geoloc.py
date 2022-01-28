@@ -21,6 +21,8 @@ import frm.support
 
 npmap = frm.support.npmap
 
+
+
 def centroid(shape):
     """Compute the centroids of a single shape
     

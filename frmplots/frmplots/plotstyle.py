@@ -4,6 +4,7 @@ from __future__ import division
 
 import matplotlib.pyplot as mp
 import matplotlib as mpl
+import numpy as np
 
 import datetime as dt
 import inspect
@@ -87,7 +88,57 @@ def add_watermark(level=0, loc='right'):
         raise ValueError("loc should be one of 'right', 'top', or 'bottom'")
 
     
+def annotate_histogram(vals, bins, **kwargs):
+    """Prints the number of elements in a histogram on top of each bar.
+
+    Slightly experimental. Only works for vertical histograms. Behaviour
+    for multiple bars of the same height not well tested. 
+
+    Example
+    ------------
+    ::
+
+        bins, vals, _ = plt.hist(data)
+        annotate_histogram(bins, vals, color='red', fontsize=14)
+
+    Inputs
+    ---------
+    vals, bins
+        The two arrays returned by `np.histogram`, or the first two values
+        returned by matplotlib's `hist` command
+    
+    Optional Arguments
+    ---------------------
+    fmt
+        (string) Format string for the numbers. Default is '%g'
+    All other arguments are passed to `plt.text`
+
+    """
+    #Define some default values
+    fmt = kwargs.pop('fmt', '%g')
+    ha = kwargs.pop('ha', 'center')
+
+    offset = .01 * (np.max(vals) - np.min(vals))
+
+    locs = bins[:-1] + .5* np.diff(bins)
+    sign = -1
+    old = 0
+    for xpos, val in zip(locs, vals):
+        if val <= 0:
+            continue 
+
+        ypos = val + offset
+        if np.fabs(ypos - old) < offset:
+            ypos += sign * offset 
+            sign *= -1
+        
+        old = ypos 
+        mp.text(xpos, ypos + offset, fmt%(val), ha=ha, **kwargs)
+
+
+
 def create_watermark_text(level=0):
+    """Create the text string for the watermark. See add_watermark for details"""
     user = os.environ['USER']
 
     full_fn = '/.'
@@ -114,8 +165,7 @@ def create_watermark_text(level=0):
         git_hash = git_meta['__git_branch_commit_sha__']
         git_status = git_meta['__git_commit_status__'][0] #One char
         git_hash = "%s (%s)" %(git_hash, git_status)
-    except (ImportError, KeyError) as e:
-        print(e)
+    except (ImportError, KeyError):
         git_hash = ""
 
     text = "%s %s %s %s" % (user, fn, time, git_hash)

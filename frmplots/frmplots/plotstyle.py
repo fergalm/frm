@@ -54,7 +54,7 @@ def add_minor_ticks():
 
 
 
-def add_watermark(level=0):
+def add_watermark(level=0, loc='right'):
     """Put an mark on the bottom right of a figure identifing
     plot creator, date, and source file.
 
@@ -76,7 +76,15 @@ def add_watermark(level=0):
     text = create_watermark_text(level+1)
     ax = mp.gca()
     f = mp.gcf()
-    ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
+
+    if loc == 'right':
+        ax.text(0.92, 0.15, text, rotation=90, size=8, transform=f.transFigure, ha="right")
+    elif loc == 'bottom':
+        ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
+    elif loc == 'top':
+        ax.text(0.95, 0.96, text, size=8, transform=f.transFigure, ha="right")
+    else:
+        raise ValueError("loc should be one of 'right', 'top', or 'bottom'")
 
     
 def create_watermark_text(level=0):

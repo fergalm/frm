@@ -30,9 +30,10 @@ def default_error_response(func, task, exc):
 
 
 def parmap(func, *args, fargs=None,
-               engine='multi',
+               engine='serial',
                timeout_sec=1e6,
-               n_simul=None,
+               n_workers=None,
+               progress='bar',
                on_error=default_error_response,
             ):
     """Apply map in parallel.
@@ -116,6 +117,8 @@ def parmap(func, *args, fargs=None,
         'multi' is a good default. Threads and async may give
         your lower memory requirements for IO heavy tasks. If you
         select the 'async' engine, `func` must be an async function.
+    progress
+        (str {bar|test|silent}). How to report number of completed tasks. Default is a progress bar.
 
     Returns
     ---------
@@ -151,26 +154,36 @@ def parmap(func, *args, fargs=None,
         other functions) may also cause trouble, and aren't well tested.
 
     """
+
+    tasks = list(itertools.product(*args))
+    if len(tasks) == 0:
+        raise ValueError("No input tasks. Is one of the input lists empty?")
+
     if fargs is None:
         fargs = {}
 
-    tasks = list(itertools.product(*args))
+    engine = get_engine(engine)         #Serial, parallel, or threaded?
+    reporter = get_reporter(progress)  #Progress reporter
+
+    #Wrap the function for parallel processing        
     if engine != 'serial':
         #Not needed for the serial engine
         func = BacktraceCatcher(func)
     pfunc = functools.partial(func, **fargs)
+    pfunc.__name__ = func.__name__
 
+    results = engine(pfunc, tasks, n_workers, timeout_sec, on_error, reporter)
+    return results
+
+
+def get_engine(request):
     engine_dict = load_engine_dict()
     try:
-        engine = engine_dict[engine]
+        engine = engine_dict[request]
     except KeyError:
-        raise KeyError("Unrecognised engine %s. Must be one of %s" %(engine, engine_dict.keys()))
+        raise KeyError("Unrecognised engine %s. Must be one of %s" %(request, engine_dict.keys()))
+    return engine
 
-    pfunc.__name__ = func.__name__
-    reporter='bar'
-    reporter = get_reporter(reporter)  #Progress reporter
-    results = engine(pfunc, tasks, n_simul, timeout_sec, on_error, reporter)
-    return results
 
 def get_reporter(request):
 
@@ -188,6 +201,8 @@ def get_reporter(request):
 
     #Assume request is a Reporter like object
     return request        
+
+
 class BacktraceCatcher():
     """Stuff the backtrace into the exception value
 
@@ -304,102 +319,9 @@ def warn_on_error(func, task, error):
     print(msg)
 
 
-
-
-#testing code
-import numpy as np
-import pytest
-
-def sqr(x):
-    print("The squre of %i is %i" %(x, x**2))
-    return x*x
-
-
-def power(x, n):
-    return x**n
-
-
-def hypot(x, y):
-    return np.sqrt(x**2 + y**2)
-
-def hypotn(x, y, n):
-    return x**n + y**n
-
-
-async def asqr(x):
-    await asyncio.sleep(2)
-    return x**2
-
-
-def test_sqr():
-    x = np.arange(10)
-
-    for sp in [True, False]:
-        res = parmap(sqr, x, single_process=sp)
-        assert np.all(res == x **2)
-
-
-def test_pow():
-    x = np.arange(10)
-
-    for sp in [False ]: #, False]:
-        res = parmap(power, x, fargs={'n':3}, single_process=sp)
-        assert np.all(res == x **3)
-
-def test_hypot():
-    x = np.arange(10)
-    y = 10 + np.arange(10)
-
-    for sp in [True, False]:
-        res = parmap(hypot, x, y, single_process=sp)
-        assert len(res) == 100
-    return res
-
-
-def test_hypotn():
-    x = np.arange(10)
-    y = np.arange(10)
-
-    for sp in [True, False]:
-        res = parmap(hypotn, x, y, fargs={'n':3}, single_process=sp)
-        assert len(res) == 100
-        assert res[-1] == 2*9**3
-
-
-def failing_task(x):
-    if x == 2:
-        1/0
-    return x
-
-async def afailing_task(x):
-    if x == 2:
-        1/0
-    return x
-
-
-def test_task_that_fails():
-    x = np.arange(5)
-
-    with pytest.raises(ZeroDivisionError):
-        res = parmap(failing_task, x, single_process=True)
-
-    res = parmap(failing_task, x, single_process=False)
-    assert res[2] is None
-    assert res[1] == 1
-
-
-def test_async():
-    x = np.arange(10)
-    res = parmap(asqr, x, engine='async')
-    assert np.all(res == x**2)
-
-def test_async_fail():
-    x = np.arange(10)
-
-    with pytest.raises(ZeroDivisionError):
-        parmap(afailing_task, x, engine='async')
-
-
+#
+# Reporters handle printing a progress report to the screen.
+#
 class NullReporter():
     """Don't report anything on iteration"""
     def __call__(self, itr, num):
@@ -426,6 +348,7 @@ class ProgressBarReporter():
     """
     def __init__(self):
         self.start_time = datetime.datetime.now()
+        
 
     def __call__(self, itr, num):
         itr += 1
@@ -437,6 +360,16 @@ class ProgressBarReporter():
         bar = self.create_bar(itr, num, len(msg))
         msg = bar + msg
         print(msg)
+
+        if False:
+            #Try to always print progress bar at bottom of screen.
+            #Work in progress
+            height = shutil.get_terminal_size().lines
+            SAVE_POS = '\x1b[s'
+            RESTORE_POS = '\x1b[u'
+            SET_POS = '\x1b[26;1H'  #%(height)
+            print(SET_POS + msg, end='\n')
+
 
     def create_bar(self, itr, num, nchars):
         width = shutil.get_terminal_size().columns - nchars - 10
@@ -458,3 +391,6 @@ class ProgressBarReporter():
         elapsed_sec = elapsed.total_seconds()
         return "(%i sec)" %(elapsed_sec)
 
+
+
+#

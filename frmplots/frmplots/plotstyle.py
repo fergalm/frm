@@ -79,7 +79,7 @@ def add_watermark(level=0, loc='right'):
     f = mp.gcf()
 
     if loc == 'right':
-        ax.text(0.92, 0.15, text, rotation=90, size=8, transform=f.transFigure, ha="right")
+        ax.text(0.93, 0.88, text, rotation=90, size=8, transform=f.transFigure, ha="right", va="top")
     elif loc == 'bottom':
         ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
     elif loc == 'top':

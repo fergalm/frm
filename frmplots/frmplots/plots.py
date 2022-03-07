@@ -59,8 +59,65 @@ def add_figure_labels(xlabel, ylabel, **kwargs):
     plt.sca(ax)
 
 
+def annotate_histogram(vals, bins, **kwargs):
+    """Prints the number of elements in a histogram on top of each bar.
+
+    Slightly experimental. Only works for vertical histograms. Behaviour
+    for multiple bars of the same height not well tested. 
+
+    Example
+    ------------
+    ::
+
+        bins, vals, _ = plt.hist(data)
+        annotate_histogram(bins, vals, color='red', fontsize=14)
+
+    Inputs
+    ---------
+    vals, bins
+        The two arrays returned by `np.histogram`, or the first two values
+        returned by matplotlib's `hist` command
+    
+    Optional Arguments
+    ---------------------
+    fmt
+        (string) Format string for the numbers. Default is '%g'
+    All other arguments are passed to `plt.text`
+
+    """
+    #Define some default values
+    fmt = kwargs.pop('fmt', '%g')
+    ha = kwargs.pop('ha', 'center')
+    offset_sign = 2* kwargs.pop('above', True) - 1
+
+    va = kwargs.pop('va', None)
+    if va is None:
+        if offset_sign > 0:
+            va = 'bottom'
+        else:
+            va = 'top'
+
+    offset = offset_sign * .01 * (np.max(vals) - np.min(vals))
+    locs = bins[:-1] + .5* np.diff(bins)
+    sign = -1
+    old = 0
+    for xpos, val in zip(locs, vals):
+        if val <= 0:
+            continue 
+
+        ypos = val + offset
+        if np.fabs(ypos - old) < offset:
+            ypos += sign * offset 
+            sign *= -1
+        
+        old = ypos 
+        plt.text(xpos, ypos + offset, fmt%(val), ha=ha, va=va, **kwargs)
+
+
 def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
     """Draw a whisker at the bottom of the plot for each value of x
+
+    See also plt.eventplot()
 
     This is useful if your points are clustered together too closely to be seen, but for 
     some reason the densityPlot() isn't suitable for your plot.
@@ -150,6 +207,8 @@ def borderplot(x, y, *args, **kwargs):
 
     plt.sca(ax)
     return ax, xh, yh
+
+
 
 
 def densityPlot(x,y, xBins, yBins, *args, **kwargs):

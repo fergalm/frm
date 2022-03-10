@@ -50,56 +50,51 @@ class DiscreteNorm(mcolors.BoundaryNorm):
         plt.scatter(x, y, norm=norm)
 
 
-    Implementation Note:
-    -----------------------
-    Sometime between versions 3.3 and 3.5 matplotlib changed the 
-    interface to the Normalisation classes in a way that broke
-    this code. As a result, a bunch of variables like self.var got
-    renamed to self.mvar (for example, self.clip --> self.mclip).
-    This was the quickest way to working code, but not necessarily
-    the best approach.
     """
 
     def __init__(self, ncolors, vmin=None, vmax=None, clip=False):
-        self.mclip = clip
+        mcolors.Normalize.__init__(self, vmin, vmax, clip)
+ 
+        # self._clip = clip
         self.ncolors = ncolors
-        self.mvmin = vmin
-        self.mvmax = vmax
+        # self._vmin = vmin
+        # self._vmax = vmax
         self.bounds = None
 
     @property
     def boundaries(self):
         if self.bounds is None:
-            if self.mvmin is None or self.mvmax is None:
+            if self._vmin is None or self._vmax is None:
                 raise ValueError("Unusual error in norm. Please set vmin and vmax")
-            self.bounds = np.linspace(self.mvmin, self.mvmax, self.ncolors+1)
+            self.bounds = self.computeBoundaries()
         return self.bounds
 
 
     def autoscale_None(self, A):
         """autoscale only None-valued vmin or vmax."""
+        # import ipdb; ipdb.set_trace()
         A = np.asanyarray(A)
-        if self.mvmin is None and A.size:
-            self.mvmin = A.min()
-        if self.mvmax is None and A.size:
-            self.mvmax = A.max()
+        if self._vmin is None and A.size:
+            self._vmin = A.min()
+        if self._vmax is None and A.size:
+            self._vmax = A.max()
 
         if self.bounds is None:
             self.bounds = self.computeBoundaries(A)
 
 
-    def computeBoundaries(self, x):
-        return np.linspace(self.mvmin, self.mvmax, self.ncolors+1)
+    def computeBoundaries(self, x=None):
+        return np.linspace(self._vmin, self._vmax, self.ncolors+1)
 
     def __call__(self, values, clip=None):
         if clip is None:
-            clip = self.mclip
+            clip = self._clip
 
         xx, is_scalar = self.process_value(values)
 
         #Perform clipping if necessary
         if clip:
-            np.clip(xx, self.mvmin, self.mvmax, out=xx)
+            np.clip(xx, self._vmin, self._vmax, out=xx)
 
         self.autoscale_None(xx)
 
@@ -111,8 +106,8 @@ class DiscreteNorm(mcolors.BoundaryNorm):
         iret *= .999999
 
         #Set norm values for out-of-bounds inputs
-        iret[xx < self.mvmin] = -1
-        iret[xx > self.mvmax] = 2
+        iret[xx < self._vmin] = -1
+        iret[xx > self._vmax] = 2
 
         #Convert to masked array?
         mask = np.ma.getmaskarray(xx)
@@ -123,6 +118,52 @@ class DiscreteNorm(mcolors.BoundaryNorm):
 
         return ret
 
+    def inverse(self, value):
+        raise ValueError("Not invertable")
+#   def __call__(self, value, clip=None):
+#         """
+#         Normalize *value* data in the ``[vmin, vmax]`` interval into the
+#         ``[0.0, 1.0]`` interval and return it.
+
+#         Parameters
+#         ----------
+#         value
+#             Data to normalize.
+#         clip : bool
+#             If ``None``, defaults to ``self.clip`` (which defaults to
+#             ``False``).
+
+#         Notes
+#         -----
+#         If not already initialized, ``self.vmin`` and ``self.vmax`` are
+#         initialized using ``self.autoscale_None(value)``.
+#         """
+#         if clip is None:
+#             clip = self.clip
+
+#         result, is_scalar = self.process_value(value)
+
+#         self.autoscale_None(result)
+#         # Convert at least to float, without losing precision.
+#         (vmin,), _ = self.process_value(self.vmin)
+#         (vmax,), _ = self.process_value(self.vmax)
+#         if vmin == vmax:
+#             result.fill(0)   # Or should it be all masked?  Or 0.5?
+#         elif vmin > vmax:
+#             raise ValueError("minvalue must be less than or equal to maxvalue")
+#         else:
+#             if clip:
+#                 mask = np.ma.getmask(result)
+#                 result = np.ma.array(np.clip(result.filled(vmax), vmin, vmax),
+#                                      mask=mask)
+#             # ma division is very slow; we can take a shortcut
+#             resdat = result.data
+#             resdat -= vmin
+#             resdat /= (vmax - vmin)
+#             result = np.ma.array(resdat, mask=result.mask, copy=False)
+#         if is_scalar:
+#             result = result[0]
+#         return result
 
 class FixedDiscreteNorm(DiscreteNorm):
     """Set the boundaries between the colours directly"""
@@ -159,7 +200,7 @@ class DiscreteLog10Norm(DiscreteNorm):
 
     def computeBoundaries(self, x):
         x = np.array(x)
-        x = x[ (x >= self.mvmin) & (x <= self.mvmax)]
+        x = x[ (x >= self._vmin) & (x <= self._vmax)]
 
         if np.any(x <=0):
             raise ValueError("Can't apply log normalisation to negative numbers")
@@ -196,7 +237,7 @@ class HistEquNorm(DiscreteNorm):
         x = np.array(x)  #Strip out array masking if necessary
         thresholds = np.linspace(0, 100, self.ncolors+1)
 
-        x = x[ (x >= self.mvmin) & (x <= self.mvmax)]
+        x = x[ (x >= self._vmin) & (x <= self._vmax)]
         boundaries = np.percentile(x, thresholds)
         boundaries[-1] += eps
 

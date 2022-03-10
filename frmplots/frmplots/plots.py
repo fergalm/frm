@@ -82,6 +82,10 @@ def annotate_histogram(vals, bins, **kwargs):
     ---------------------
     fmt
         (string) Format string for the numbers. Default is '%g'
+    ha
+        (string) Horizontal alignment of text. Defaults to center.
+    above=True
+        (bool) Whether annotations should be above or below the point 
     All other arguments are passed to `plt.text`
 
     """
@@ -97,7 +101,7 @@ def annotate_histogram(vals, bins, **kwargs):
         else:
             va = 'top'
 
-    offset = offset_sign * .01 * (np.max(vals) - np.min(vals))
+    offset = offset_sign * .04 * (np.max(vals) - np.min(vals))
     locs = bins[:-1] + .5* np.diff(bins)
     sign = -1
     old = 0
@@ -321,6 +325,42 @@ def mark_weekends(timestamps, tz='UTC'):
 
     try:
         handle.set_label("Weekend")
+    except UnboundLocalError:
+        #No weekends marked
+        pass
+
+
+def mark_nights(timestamps, tz='UTC'):
+    """Plot grey bars to indicate night time in the central timezone"""
+    t1 = min(timestamps)
+    t2 = max(timestamps)
+
+    t1 = "%04i-%02i-%02i 22:00" %(t1.year, t1.month, t1.day)  #10pm
+    t2 = "%04i-%02i-%02i 22:00" %(t2.year, t2.month, t2.day)  #8am
+    # print (t1, t2)
+
+    day_start = pd.date_range(start=t1, end=t2, freq='D')
+    day_start = day_start.tz_localize(tz)
+
+    delta = pd.to_timedelta("10H")
+    for day in day_start:
+        handle = plt.axvspan(day, day+delta, color='b', alpha=.1)
+
+    #Edge case: First day of data set is Sunday
+    # day = day_start[0]
+    # if day.dayofweek == 6:
+    #     delta = pd.to_timedelta("1D")
+    #     handle = plt.axvspan(day-delta, day+delta, color='b', alpha=.1)
+    #     plt.xlim(xmin=min(timestamps))
+
+    # for day in day_start:
+    #     if day.dayofweek == 5:
+    #         delta1 = pd.to_timedelta("6H")
+    #         delta2 = pd.to_timedelta("30H")
+    #         handle = plt.axvspan(day-delta1, day+delta2, color='b', alpha=.1)
+
+    try:
+        handle.set_label("10pm-8am")
     except UnboundLocalError:
         #No weekends marked
         pass

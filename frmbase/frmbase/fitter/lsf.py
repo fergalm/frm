@@ -4,12 +4,9 @@ Created on Fri Dec  2 10:00:59 2016
 @author: fergal
 """
 
-#import matplotlib.pyplot as plt
-#import matplotlib as mpl
-#import pandas as pd
-import numpy as np
 
-from frm.fitter.AbstractFitter import AbstractFitter
+from frmbase.fitter.AbstractFitter import AbstractFitter
+import numpy as np
 
 def poly(x, order, **kwargs):
     """Polynomial of the form \Sigma a_i x**i

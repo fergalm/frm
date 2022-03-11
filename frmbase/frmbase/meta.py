@@ -272,7 +272,7 @@ def get_git_repo(filename):
             continue
 
 
-    raise IOError("%s does not appeat to belong to a git repo" %(filename))
+    raise IOError("%s does not appear to belong to a git repo" %(filename))
 
 
 

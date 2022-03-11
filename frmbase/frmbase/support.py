@@ -105,15 +105,21 @@ def int_to_bin_str(arr):
 
 
 
-def load_parquet(pattern):
-    """Load a set of paraquet files into a single dataframe
+def load_df_from_pattern(pattern, loader, **kwargs):
+    """Load a set of files whose paths match pattern
 
-    This only works for local files.
+    This only works for local files. Results are 
+    stored in a dataframe
 
     Inputs
     --------
     pattern (str)
         A string that is globbed to find all appropriate files on disk
+    loader (func)
+        Function that loads individual files. Must return a dataframe.
+        Eg pd.read_csv, pd.read_parquet, etc
+
+    All optional inputs are passed to `loader`
 
     Returns
     ----------
@@ -125,7 +131,8 @@ def load_parquet(pattern):
     if len(flist) == 0:
         raise ValueError("No files found matching %s" %(pattern))
 
-    dflist = list(map(lambda x: pd.read_parquet(x), flist))
+    f = lambda x: loader(x, **kwargs)
+    dflist = list(map(f, flist))
     return pd.concat(dflist)
 
 

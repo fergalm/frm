@@ -24,7 +24,6 @@ class AbstractStep:
 
 def runPipeline(tasks, df=None):
     """ """
-
     for i, t in enumerate(tasks):
         try:
             df = t.apply(df)
@@ -138,7 +137,7 @@ class DropDuplicates(AbstractStep):
 
 
     def apply(self, df):
-        return df.drop_duplicates(self.cols, keep="first")
+        return df.drop_duplicates(self.cols, keep="first").copy()
 
 
 class DropCol(AbstractStep):

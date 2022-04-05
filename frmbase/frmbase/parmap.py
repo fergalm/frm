@@ -359,7 +359,7 @@ class ProgressBarReporter():
 
         bar = self.create_bar(itr, num, len(msg))
         msg = bar + msg
-        print(msg)
+        print(msg, end='')
 
         if False:
             #Try to always print progress bar at bottom of screen.
@@ -380,7 +380,7 @@ class ProgressBarReporter():
         # bar = "[" + "█" * frac + "·" * remain + "] "
         # bar = "[" + "■" * frac + "·" * remain + "] "
         
-        bar = "[" + "▬" * (frac-1) + "▶" + "·" * remain + "] "
+        bar = "\r[" + "▬" * (frac-1) + "▶" + "·" * remain + "] "
         
          	 
         return bar

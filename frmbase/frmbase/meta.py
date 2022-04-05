@@ -28,6 +28,24 @@ except ImportError:
     pass 
 
 
+class MyJsonEncoder(json.encoder.JSONEncoder):
+    """If an object to be serialised has a __json__ method, use 
+    that for serialisation. Otherwise try default encoding,
+    and fall back on a string representation
+    """
+
+    def default(self, obj):
+        if hasattr(obj, '__json__'):
+            if callable(obj.__json__):
+                return obj.__json__()
+            else:
+                return obj.__json__ 
+        try:
+            return super(MyJsonEncoder, self).default(obj)
+        except TypeError:
+            return str(obj)
+
+
 def save_state(statefile, **kwargs):
     """Write out the values local variables to a json file
 
@@ -78,7 +96,7 @@ def save_state(statefile, **kwargs):
     out = get_state(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2)
+        json.dump(out, fp, indent=2, cls=MyJsonEncoder)
 
 
 def save_metadata(statefile, **kwargs):
@@ -133,8 +151,7 @@ def save_metadata(statefile, **kwargs):
     out = get_metadata(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2)
-
+        json.dump(out, fp, indent=2, cls=MyJsonEncoder)
 
 
 def get_state(**kwargs):

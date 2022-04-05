@@ -36,6 +36,11 @@ class FixedDict(dict):
 
         fixed.aa   #Raises attribute error
     
+    TODO
+    ------
+    * Don't allow the names of dict methods (keys, copy, items, etc) as
+      keys to a FixedDict
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -49,7 +54,11 @@ class FixedDict(dict):
         for k in kwargs:
             dict.__setitem__(self, k, kwargs[k])
 
-    def __setitem__(self, key, value):
+        #Don't overrite setitem until after __new__ and __init__ are complete
+        #This makes FixedDict pickleable
+        self.__setitem__ = self.safe_setitem
+
+    def safe_setitem(self, key, value):
         if key not in self.keys():
             raise KeyError(f"Can't add new keys to this object ({key})")
         dict.__setitem__(self, key, value)

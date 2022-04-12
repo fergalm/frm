@@ -1,8 +1,10 @@
 
 from  ipdb import set_trace as idebug 
-import scipy.interpolate as spinterp
-import frm.plateau as plateau
+# import scipy.interpolate as spinterp
 import numpy as np
+
+from frmbase.fitter.lsf import Lsf
+import frmbase.plateau as plateau
 
 
 
@@ -52,7 +54,7 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
 
     gaps = plateau.plateau(idx.astype(float), .5)
     y = fill_small_gaps(y, gaps, small_size)
-    y = fill_large_gaps(y, gaps, small_size)
+    y = fill_large_gaps_cubic(y, gaps, small_size)
 
     idx = plateau.convert_plateau_to_index(gaps, len(y))
     return y, idx
@@ -70,6 +72,7 @@ def fill_small_gaps(y, gaps, max_size):
 
 
 def fill_large_gaps(y, gaps, min_size):
+    """Deprecated. Use fill_large_gaps_cubic instead"""
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size > min_size]
 
@@ -94,25 +97,124 @@ def fill_large_gaps(y, gaps, min_size):
 
     return y
 
-#I ended up liking this less
-    # for g in gaps:
-    #     pad = int( (g[1] - g[0])/ 2.)
-    #     left = np.max([g[0] - pad, 0])
-    #     right = np.min([g[1] + pad, len(y)])
-    #     slice_l = slice(left, g[0])
-    #     slice_r = slice(g[1], right)
 
-    #     xx = np.concatenate( [t[slice_l], t[slice_r]])
-    #     yy = np.concatenate( [y[slice_l], y[slice_r]])
-    #     #Superior to Pchip and Barycentric for the Kepler TPS case
-    #     #were data after the gap has the same slope as data before the 
-    #     #gap, but is offset in the opposite direction.
-    #     # spline = spinterp.CubicSpline(xx, yy)
-    #     spline = spinterp.PchipInterpolator(xx, yy)
+def fill_large_gaps_cubic(y, gaps, min_size):
+    gap_size = gaps[:,1] - gaps[:,0]
+    gaps = gaps[gap_size > min_size]
+    t = np.arange(len(y))
 
-    #     range_to_interp = np.arange(g[0], g[1])
-    #     y[range_to_interp] = spline(range_to_interp)
+    y_out = y.copy()
+    for g in gaps:
+        pad_size = int( (g[1] - g[0]))
+        y = fill_single_large_gap_cubic(y, g[0], g[1], pad_size)
+        y_out[ g[0]:g[1] ] = y #fill the gap
 
+        #TODO Add noise?
+    return y
+
+
+def fill_single_large_gap_cubic(y, y1, y2, pad_size):
+    """Fill a large gap in a timeseries using cubic interpolation.
+    
+    Fit a cubic polynomial to a sequence before a gap, and again
+    to a sequency after the gap. The fit a cubic polynomial over the gap
+    that has the same value and slope as the anchoring polynomials on either side
+
+    Works, but not well tempered in production.
+
+    Inputs
+    --------
+    y
+        (1d np array) Data set in which to fill the gap.
+    y1, y2 
+        (ints) indices of start and end of gap 
+    pad_size
+        (int) Number of indices of data before and after to fit to. 
+
+
+    Returns
+    -----------
+    A numpy array of length (y2-y1) representing the interpolated polynomial.
+    You may want to add some noise to the interpolation before applying smoothing
+
+    Explanation
+    ------------
+    A polynomial is of the form :math:`y = ax^3 + bx^2 + cx + d`. The slope 
+    of the polynomial is is :math:`y' = 3ax^3 + 2bx + c`.
+
+    At x=0, (y, y') has the same values as the polynomial fit to the "before" data.
+    At x=n, they have the same values as the polynomial fit to the "after" data. 
+    Working through the simultaneous equations gives us the values of a, b, c and d
+    for the interpolating polynomial.
+
+    """
+
+    #Order of indices: 0..left..start (gap) end ..right...
+    y0 = np.max([y1 - pad_size, 0])
+    y3 = np.min([y2 + pad_size, len(y)])
+
+    left_anchor = y[y0:y1]
+    right_anchor = y[y2:y3]
+    #TODO check for min length
+    assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
+    assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"
+
+    ys, ms = get_params_of_anchor_section(left_anchor, left=True, dx=y0)
+    ye, me = get_params_of_anchor_section(right_anchor, left=False, dx=y2)
+
+    c = ms
+    d = ys 
+    dy = ye - ys 
+    dm = me - ms 
+    size = y2 - y1
+
+    Amat = np.array([size**3, size**2, 3*size**2, 2*size]).reshape((2,2))
+    bVec = np.array([dy - ms*size, dm]).reshape((2,1))
+    res = np.linalg.solve(Amat, bVec)
+    a, b = res[0], res[1]
+
+    x = np.arange(size)
+    y = (((a * x) + b) * x + c) * x + d
+    return y 
+
+    
+def get_params_of_anchor_section(y, left=True, dx=0):
+    #TODO Robust fit?
+    x = np.arange(len(y))
+    fobj = Lsf(x, y, 1, 4)
+    pars = fobj.getParams()
+
+    d, c, b, a = pars
+
+    if left:
+        x0 = x[-1]
+    else:
+        x0 = x[0]
+
+    offset = fobj.getBestFitModel(x0)[0]
+    slope = ((3*a * x0) + 2*b)*x0 + c
+    return offset, slope
+
+
+
+import matplotlib.pyplot as plt 
+def test_single_large_gap():
+    x = np.arange(1000)    
+    y = np.sin(2*np.pi*x/250)
+    
+    t1, t2 = 200, 340
+    y[t1:t2] = np.nan
+    y[t2:] -= 2
+
+    plt.clf()
+    plt.plot(x, y, 'r.-')
+
+    gaps = np.array( [ [t1, t2]])
+    y0 = y.copy()
+    y_gap = fill_large_gaps_cubic(y, gaps, 3)
+    y[ gaps[0,0]:gaps[0,1]] = y_gap
+    
+    plt.plot(x[t1:t2], y_gap, 'b.-')
 
 # def test_fill_large_gaps1():
 #     x = np.arange(1000)    

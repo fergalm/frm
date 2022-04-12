@@ -65,6 +65,13 @@ def count_duplicates(data):
     return out
 
 
+def chop(string):
+    return string[:-1]
+
+def chomp(string):
+    if string[-1] == '\n':
+        return string[:-1]
+    return string
 
 
 def int_to_bin_str(arr):

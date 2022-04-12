@@ -11,7 +11,7 @@ import inspect
 import re
 import os
 
-def respace(stringList):
+def respace(stringList, sep=None):
     """Take a list of strings and add white space so the columns
     are left justified.
     """
@@ -22,7 +22,7 @@ def respace(stringList):
         if re.search("^#", line):
             continue    #Skip comments
 
-        words = line.split()
+        words = line.split(sep)
         for i, w in enumerate(words):
             if i in size:
                 size[i] = max(size[i], len(w))
@@ -36,7 +36,7 @@ def respace(stringList):
             outList.append(line)  #Don't reformat comments
         else:
             outLine = []
-            for i, w in enumerate(line.split()):
+            for i, w in enumerate(line.split(sep)):
                 newWord= "%-*s" %(size[i], w)
                 outLine.append(newWord)
             outList.append(" ".join(outLine))

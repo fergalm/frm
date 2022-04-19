@@ -59,6 +59,7 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
     idx = plateau.convert_plateau_to_index(gaps, len(y))
     return y, idx
 
+
 def fill_small_gaps(y, gaps, max_size):
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size <= max_size]

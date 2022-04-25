@@ -45,10 +45,11 @@ class QTable():
         self.df = df 
         self.nrow = len(df)
         self.ncol = len(df.columns)
-        self.table = self.create()
+        self.app, self.table = self.create()
         
         self.set_size_policy()
         self.draw_row_guides(None)
+        print("Press [Q] in window to quit")
 
     def create(self):
         app = PyQt5.QtWidgets.QApplication.instance()
@@ -65,7 +66,7 @@ class QTable():
         tab.show()
         tab.setSortingEnabled(True)
         
-        return tab 
+        return app, tab 
 
     def set_size_policy(self):
         tab = self.table
@@ -78,12 +79,13 @@ class QTable():
         tab.resize(width_pix, height_pix)
 
         #I think I have to subclass QTableWidget and override keyReleaseEvent
-    #     tab.keyReleaseEvent.connect(self.quit)
+        tab.keyReleaseEvent = self.quit
 
-    # def quit(self, eventQKeyEvent):
-    #     key = eventQKeyEvent.key()
-    #     if key == 'q':
-    #         self.table.hide()
+    def quit(self, eventQKeyEvent):
+        key = eventQKeyEvent.key()
+        if key == 81:  #The letter [q]
+            self.table.hide()
+
 
 
     def set_table_elements(self, tab, df):
@@ -97,6 +99,8 @@ class QTable():
                     item = QItem("%g"% (elt))
                 except TypeError:
                     item = QItem(str(elt))
+                #Mark item as readonly
+                item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
                 tab.setItem(j, i, item)
 
         tab.resizeColumnsToContents()

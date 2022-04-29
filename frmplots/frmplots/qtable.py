@@ -1,6 +1,9 @@
-import PyQt5.QtWidgets
-import PyQt5.QtGui as QtGui
+from ipdb import set_trace as idebug 
+
+import PyQt5.QtWidgets as QtWidget
 import PyQt5.QtCore as QtCore
+import PyQt5.QtGui as QtGui
+import PyQt5.QtWidgets
 
 
 
@@ -26,13 +29,14 @@ class QTable():
     ------
     x Return control to the prompt
     x Better highlight color
-    o Show/hide column
-    o Change column order?
+    x Better default width and height
+    x Press [Q] to quit
     x Sort dataframe by column
     x Better sort
+    o Show/hide column
+    o Change column order?
     o format strings?
     o max column widths?
-    o Better default width and height
 
 
     Future Work
@@ -50,6 +54,8 @@ class QTable():
         self.set_size_policy()
         self.draw_row_guides(None)
         print("Press [Q] in window to quit")
+
+        self.selector = ColumnSelector(self)
 
     def create(self):
         app = PyQt5.QtWidgets.QApplication.instance()
@@ -85,6 +91,7 @@ class QTable():
         key = eventQKeyEvent.key()
         if key == 81:  #The letter [q]
             self.table.hide()
+            self.selector.hide()
 
 
 
@@ -120,66 +127,68 @@ class QTable():
                 item = self.table.item(i, j)
                 item.setBackground(clr)
 
-
-# def display():
-#     """Taken from inputhookqt4.py in IPython"""
-
-#     try:
-#         allow_CTRL_C()
-#         app = QtCore.QCoreApplication.instance()
-#         if not app: # shouldn't happen, but safer if it happens anyway...
-#             return 0
-#         app.processEvents(QtCore.QEventLoop.AllEvents, 300)
-#         if not stdin_ready():
-#             # Generally a program would run QCoreApplication::exec()
-#             # from main() to enter and process the Qt event loop until
-#             # quit() or exit() is called and the program terminates.
-#             #
-#             # For our input hook integration, we need to repeatedly
-#             # enter and process the Qt event loop for only a short
-#             # amount of time (say 50ms) to ensure that Python stays
-#             # responsive to other user inputs.
-#             #
-#             # A naive approach would be to repeatedly call
-#             # QCoreApplication::exec(), using a timer to quit after a
-#             # short amount of time. Unfortunately, QCoreApplication
-#             # emits an aboutToQuit signal before stopping, which has
-#             # the undesirable effect of closing all modal windows.
-#             #
-#             # To work around this problem, we instead create a
-#             # QEventLoop and call QEventLoop::exec(). Other than
-#             # setting some state variables which do not seem to be
-#             # used anywhere, the only thing QCoreApplication adds is
-#             # the aboutToQuit signal which is precisely what we are
-#             # trying to avoid.
-#             timer = QtCore.QTimer()
-#             event_loop = QtCore.QEventLoop()
-#             timer.timeout.connect(event_loop.quit)
-#             while not stdin_ready():
-#                 timer.start(50)
-#                 event_loop.exec_()
-#                 timer.stop()
-#     except KeyboardInterrupt:
-#         global got_kbdint, sigint_timer
-
-#         ignore_CTRL_C()
-#         got_kbdint = True
-#         # mgr.clear_inputhook()
+    def toggleColumn(self, sender_label, state):
+        #See https://zetcode.com/gui/pyqt5/eventssignals/
+        cols = self.df.columns
+        for i in range(self.ncol):
+            if cols[i] == sender_label:
+                if state:
+                    self.table.showColumn(i)
+                else:
+                    self.table.hideColumn(i)
 
 
-# import signal 
-# import select
-# import sys 
+    def showAll(self):
+        for i in range(self.ncol):
+            self.table.showColumn(i)
 
-# def allow_CTRL_C():
-#     """Take CTRL+C into account (SIGINT)."""
-#     signal.signal(signal.SIGINT, signal.default_int_handler)
+    def hideAll(self):
+        for i in range(self.ncol):
+            self.table.hideColumn(i)
 
-# def ignore_CTRL_C():
-#     """Ignore CTRL+C (SIGINT)."""
-#     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-# def stdin_ready():
-#     """Return True if there's something to read on stdin (posix version)."""
-#     infds, _, _ = select.select([sys.stdin],[],[],0)
-#     return bool(infds)
+class ColumnSelector(PyQt5.QtWidgets.QDialog):
+    def __init__(self, table, parent=None):
+        self.table = table
+        df = table.df
+        PyQt5.QtWidgets.QDialog.__init__(self, parent)
+        self.setMinimumWidth(150)
+
+        layout = PyQt5.QtWidgets.QVBoxLayout(self)
+        button1 = QtWidget.QPushButton("Select All")
+        button1.clicked.connect(self.showAll)
+        button2 = QtWidget.QPushButton("Hide All")
+        button2.clicked.connect(self.hideAll)
+        layout.addWidget(button1)
+        layout.addWidget(button2)
+
+        self.boxes = []
+        for i, col in enumerate(df.columns):
+            print(i, col)
+            checkbox = QtWidget.QCheckBox(col)
+            checkbox.setChecked(True)
+            checkbox.stateChanged.connect(self.onToggle)
+            layout.addWidget(checkbox)
+            self.boxes.append(checkbox)
+        self.layout = layout
+        self.show()
+
+
+    def showAll(self):
+        self.table.showAll()  #Maybe unecessary?
+        
+        #Update all the checkboxes
+        for box in self.boxes:
+            box.setChecked(True)
+
+    def hideAll(self):
+        self.table.hideAll()  #Maybe unecessary?
+
+        #Update all the checkboxes
+        for box in self.boxes:
+            box.setChecked(False)
+
+    def onToggle(self, state):
+        sender = self.sender()
+        self.table.toggleColumn(sender.text(), state>0)
+

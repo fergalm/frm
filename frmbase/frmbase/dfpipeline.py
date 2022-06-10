@@ -37,6 +37,13 @@ def runPipeline(tasks, df=None):
 
     return df
 
+
+def pipelineToString(pipeline):
+    """Convert a pipeline to a list of strings"""
+    strs = map(str, pipeline)
+    return "\n".join(strs)
+
+
 def pipelineAsString(pipeline):
     """Create a string describing the steps in a pipeline
 
@@ -279,6 +286,12 @@ class SetCol(AbstractStep):
         df[self.col] = eval(predicate)
         return df
 
+class Sort(AbstractStep):
+    def __init__(self, col):
+        self.col = col 
+
+    def apply(self, df):
+        return df.sort_values(self.col)
 
 class ToDatetime(AbstractStep):
     """Convert a column to a datetime"""

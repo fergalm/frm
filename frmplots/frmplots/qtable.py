@@ -33,14 +33,16 @@ class QTable():
     x Press [Q] to quit
     x Sort dataframe by column
     x Better sort
-    o Show/hide column
-    o Change column order?
+    x Show/hide column
     o format strings?
     o max column widths?
-
+    o A title
+    o A button to show the column selector
+    o A better class name
 
     Future Work
     o Select columns and plot.
+    o Change column order?
     """
     def __init__(self, df, num=1000):
         if len(df) > num:
@@ -93,8 +95,6 @@ class QTable():
             self.table.hide()
             self.selector.hide()
 
-
-
     def set_table_elements(self, tab, df):
         tab.setHorizontalHeaderLabels(df.columns)
 
@@ -128,7 +128,6 @@ class QTable():
                 item.setBackground(clr)
 
     def toggleColumn(self, sender_label, state):
-        #See https://zetcode.com/gui/pyqt5/eventssignals/
         cols = self.df.columns
         for i in range(self.ncol):
             if cols[i] == sender_label:
@@ -136,7 +135,6 @@ class QTable():
                     self.table.showColumn(i)
                 else:
                     self.table.hideColumn(i)
-
 
     def showAll(self):
         for i in range(self.ncol):

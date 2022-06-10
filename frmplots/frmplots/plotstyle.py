@@ -53,6 +53,10 @@ def add_minor_ticks():
         a.set_tick_params(which="minor", length=4, width=1, color='k')
 
 
+def remove_minor_ticks():
+    ax = mp.gca()
+    for a in [ax.xaxis, ax.yaxis]:
+        a.set_minor_locator(mpl.ticker.NullLocator())
 
 
 def add_watermark(level=0, loc='right'):

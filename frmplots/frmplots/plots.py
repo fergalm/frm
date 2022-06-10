@@ -21,7 +21,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.patheffects as meffect
 import matplotlib.colors as mcolors
 import matplotlib.ticker as mticker
-import matplotlib.patches as mpatch
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
@@ -29,6 +29,7 @@ import numpy as np
 import pickle
 import copy
 
+from . import norm as fnorm
 from . galaxyplot import galaxyPlot
 from . import plotstyle
 
@@ -101,8 +102,12 @@ def annotate_histogram(vals, bins, **kwargs):
         else:
             va = 'top'
 
+    if len(bins) == len(vals):
+        locs = bins
+    elif len(bins) == len(vals) + 1:
+        locs = bins[:-1] + .5* np.diff(bins)
+
     offset = offset_sign * .04 * (np.max(vals) - np.min(vals))
-    locs = bins[:-1] + .5* np.diff(bins)
     sign = -1
     old = 0
     for xpos, val in zip(locs, vals):
@@ -268,7 +273,7 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
     """
     threshold = kwargs.pop('threshold', 10)
     cmap = kwargs.pop('cmap', DEFAULT_CMAP)
-    norm = kwargs.pop('norm', None)
+    norm = kwargs.pop('norm', fnorm.DiscreteNorm(7))
     ls = kwargs.pop('ls', "none")
     ls = kwargs.pop('linestyle', ls)
     marker = kwargs.pop('marker', 'o')
@@ -285,8 +290,29 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
 
 
 def fix_date_labels():
-    """Format date strings in x-axis label so they're easier to read"""
+    """Format date strings in x-axis label so they're easier to read
+    
+    Note
+    ----------
+    To get minor ticks once per day add the following code
+    to your function after you call fix_date_labels()::
+
+        import matplotlib.ticker as mticker
+        ax.xaxis.set_minor_locator(mticker.IndexLocator(1, 0))
+
+    This only works if you want one tick per day, and isn't helpful
+    for much longer or shorter date spans
+
+    """
     plt.gcf().autofmt_xdate()
+
+    #If the xaxis range is of order 1 month, set the major ticks
+    #to be once weekly
+    locator = mdates.AutoDateLocator(minticks=2, maxticks=7, interval_multiples=False)
+    locator.intervald['DAILY'] = 7
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(locator)
+
 
 
 def load_figfile(filename):

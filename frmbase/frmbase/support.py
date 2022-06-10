@@ -105,7 +105,7 @@ def int_to_bin_str(arr):
 
 
 
-def load_df_from_pattern(pattern, loader, **kwargs):
+def load_df_from_pattern(pattern, loader=None, **kwargs):
     """Load a set of files whose paths match pattern
 
     This only works for local files. Results are 
@@ -125,11 +125,28 @@ def load_df_from_pattern(pattern, loader, **kwargs):
     ----------
     A Pandas dataframe
     """
+    #Just because function exists, doesn't mean required packages
+    #are installed
+    opts = dict(
+        csv=pd.read_csv,
+        parquet=pd.read_parquet,
+        json=pd.read_json,
+        xls=pd.read_excel,
+    )
 
     flist = glob(pattern)
 
     if len(flist) == 0:
         raise ValueError("No files found matching %s" %(pattern))
+
+    #Choose a loading function
+    if loader is None:
+        ext = os.path.splitext(flist[0])[-1]
+        ext = ext[1:]  #Remove . at start
+        try:
+            loader = opts[ext]
+        except KeyError:
+            raise ValueError("Unrecognised file type %s" %(ext))
 
     f = lambda x: loader(x, **kwargs)
     dflist = list(map(f, flist))

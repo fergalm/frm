@@ -75,7 +75,7 @@ def save_state(statefile, **kwargs):
 
     Example
     -----------
-    .. code-block:: python
+    ::
 
         numSim = 1000
         alpha = .5
@@ -88,15 +88,18 @@ def save_state(statefile, **kwargs):
     small objects. json may reject things like classes and arrays,
     or may produce large, unreadable output. If you have such data
     you may perfer to use `save_metadata` instead.
+
+    * Classes can be saved if you add a __json__() method to convert
+    the class to a dict
     """
     frame = kwargs.pop('frame', inspect.currentframe().f_back)
     # params = dict(frame.f_locals)
 
     # kwargs.update(params)
-    out = get_state(frame=frame, **kwargs)
+    jsonstr = get_state(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2, cls=MyJsonEncoder)
+        fp.write(jsonstr)
 
 
 def save_metadata(statefile, **kwargs):
@@ -148,13 +151,13 @@ def save_metadata(statefile, **kwargs):
     * See also `save_state`
     """
     frame = kwargs.pop('frame', inspect.currentframe().f_back)
-    out = get_metadata(frame=frame, **kwargs)
+    jsonstr = get_metadata(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2, cls=MyJsonEncoder)
+        fp.write(jsonstr)
 
 
-def get_state(**kwargs):
+def get_state(**kwargs) -> str:
     """Get the state of local variables.
 
     This function performs the same function as save_state, but
@@ -188,7 +191,7 @@ def get_state(**kwargs):
     return get_metadata(frame=frame, **kwargs)
 
 
-def get_metadata(**kwargs):
+def get_metadata(**kwargs) -> str:
     """Save some metadata to a dictionary
 
     This function performs the same function as get_state, but
@@ -201,7 +204,7 @@ def get_metadata(**kwargs):
 
     Example
     -----------
-    .. code-block:: python
+    :: 
 
         numSim = 1000
         alpha = .5
@@ -246,11 +249,11 @@ def get_metadata(**kwargs):
     params['__doc__'] = frame.f_globals[name].__doc__    
 
     params.update(kwargs)
-    return params
+    return json.dumps(params, indent=2, cls=MyJsonEncoder)
 
 
 
-def get_git_info(filename):
+def get_git_info(filename) -> dict:
     params = dict()
 
     if filename[0] != '/' and filename[1] != ':':
@@ -277,7 +280,7 @@ def get_git_info(filename):
 
 
 
-def get_git_repo(filename):
+def get_git_repo(filename) -> str:
     sep = os.path.sep
     tokens = filename.split(sep)
 
@@ -294,7 +297,7 @@ def get_git_repo(filename):
 
 
 
-def get_commit_status(repo, filename):
+def get_commit_status(repo, filename) -> str:
     #Windows work around. gitpython stores paths with forward slash
     sep = os.path.sep 
     filename = filename.replace(sep, '/')

@@ -246,7 +246,10 @@ def get_metadata(**kwargs) -> str:
 
     #Add docstring from calling function
     name = frame.f_code.co_name
-    params['__doc__'] = frame.f_globals[name].__doc__    
+    docstring = frame.f_globals[name].__doc__    
+    if isinstance(docstring, str):  #If no docstring, will be None
+        docstring = docstring.split('\n')
+    params['__doc__'] = docstring
 
     params.update(kwargs)
     return json.dumps(params, indent=2, cls=MyJsonEncoder)

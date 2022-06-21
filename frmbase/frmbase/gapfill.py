@@ -1,7 +1,7 @@
 
 from  ipdb import set_trace as idebug 
 import scipy.interpolate as spinterp
-import frm.plateau as plateau
+import frmbase.plateau as plateau
 import numpy as np
 
 
@@ -58,18 +58,27 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
     return y, idx
 
 def fill_small_gaps(y, gaps, max_size):
+    if len(gaps) == 0:  #No gaps to fill
+        return y 
+
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size <= max_size]
 
     for g in gaps:
         left, right = g[0], g[1]
-        snippet = y[left-max_size: right + max_size+1]
+        lwr = max(left - max_size, 0)
+        upr = min(right + max_size + 1, len(y))
+        snippet = y[lwr:upr]
+        assert len(snippet) > 0
         fill_value = np.nanmean(snippet)
         y[left:right] = fill_value 
     return y
 
 
 def fill_large_gaps(y, gaps, min_size):
+    if len(gaps) == 0:  #No gaps to fill
+        return y 
+
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size > min_size]
 

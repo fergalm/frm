@@ -14,13 +14,13 @@ import matplotlib.patches as mpatch
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-from frm.anygeom import AnyGeom
-import frm.plots as fplots
+from frmgis.anygeom import AnyGeom
+import frmplots.plots as fplots
 import pandas as pd
 import numpy as np
-import frm.support
+import frmbase.support
 
-npmap = frm.support.npmap
+npmap = frmbase.support.npmap
 
 
 def chloropleth(polygons, values, **kwargs):

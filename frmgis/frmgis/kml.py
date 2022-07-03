@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
+import osgeo.ogr as ogr
 import numpy as np
 import fastkml
-import ogr
 import re
 
 """

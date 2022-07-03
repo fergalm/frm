@@ -8,8 +8,8 @@ Created on Thu Jan  9 09:12:23 2020
 from pdb import set_trace as debug
 import matplotlib.pyplot as plt
 
-from frm.anygeom import AnyGeom
-import frm.plots as fplots
+from frmgis.anygeom import AnyGeom
+import frmplots.plots as fplots
 
 
 def test():

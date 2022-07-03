@@ -11,11 +11,11 @@ import matplotlib as mpl
 import numpy as np
 
 
-from frm.anygeom import AnyGeom
+from frmgis.anygeom import AnyGeom
 #import frm.geomconvertor as gc
-from frm.support import npmap
-import frm.projection
-import frm.plots as fplots
+from frmbase.support import npmap
+import frmgis.projection as projection
+import frmplots.plots as fplots
 
 """A tool to format AOIs to meet the requirements of Digital Globe
 and other providers
@@ -192,7 +192,7 @@ def create_buffered_bbox_for_dg(geom):
     bbox = np.array([ [x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1] ])
 
     #Convert to equal area projection
-    proj = frm.projection.SineProjection(Rearth)
+    proj = projection.SineProjection(Rearth)
     ea_coords = np.array( proj.w2p(bbox[:,0], bbox[:,1]) ).transpose()
     area = area_of_polygon(ea_coords)
 

@@ -10,13 +10,11 @@ from __future__ import print_function
 from __future__ import division
 
 from ipdb import set_trace as idebug
-
-import oids.geoloc.utils.geohash as oi_geohash
-from frm.anygeom import AnyGeom
+from frmgis.anygeom import AnyGeom
 from osgeo import ogr
 import pandas as pd
 import numpy as np
-import frm.support
+import frmbase.support
 
 
 npmap = frm.support.npmap
@@ -56,6 +54,7 @@ def convert_adid_to_deviceid(ad_ids):
 def geohashes_to_lnglat(ghlist):
     """Convert a list of geohashes (of any length) to lnglat positions
 
+    DOESN"T WORK ANYMORE
     Inputs
     ---------
     ghlist
@@ -67,7 +66,7 @@ def geohashes_to_lnglat(ghlist):
     Numpy array of shape (n, 2), where *n* is the length of the input.
     Each row represents the lng/lat of the southwest corner of a geohash
     """
-
+    import oids.geoloc.utils.geohash as oi_geohash
     return npmap(lambda x: oi_geohash.geohash_bounds(x)['sw'], ghlist)
 
 

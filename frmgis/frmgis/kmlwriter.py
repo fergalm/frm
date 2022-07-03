@@ -10,7 +10,7 @@ from __future__ import print_function
 from __future__ import division
 
 
-from frm.anygeom import AnyGeom
+from frmgis.anygeom import AnyGeom
 import datetime
 import inspect
 import os

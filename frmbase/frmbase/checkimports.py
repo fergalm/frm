@@ -9,6 +9,12 @@ Code to recusively seach a python module for import
 statements. This can be useful when you want
 to package up a new piece of code and want to 
 find all the dependencies
+
+TODO
+Fails on imports in the style ::
+
+    from . import foo
+    from .. import foo
 """
 
 
@@ -63,34 +69,48 @@ def do_check_imports(path, objs=None):
 
 
 def process_module(path, objs):
+    sub_modules = find_module_names_in_file(path)
+
+    for modname in sub_modules:
+        mpath = get_path_to_module(modname)
+        if mpath == "":
+            continue 
+
+        #Recursively search that module
+        subdict = do_check_imports(mpath, objs)
+        objs.update(subdict)
+    return objs
+
+def get_path_to_module(modname):
+    #Get path of module
+    try:
+        mpath = pkgutil.get_loader(modname)
+        mpath = mpath.get_filename()
+    except (AttributeError, ImportError) as e:
+        print(f"WARN: Importing {modname} from {path} failed with error {e}")
+        return ""
+
+def find_module_names_in_file(path):
+    """
+    
+    This fails for imports of type::
+
+        from . import foo
+        from .. import foo
+
+    
+    """
+    modules = []
     text = get_text(path)
     if len(text) == 0:
-        return objs
+        return modules
 
     nodes = ast.parse(text)
     for node in ast.walk(nodes):
         if isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
+            modules.append(get_module_name(node))
+    return modules
 
-            modname = get_module_name(node)
-            try:
-                mpath = pkgutil.get_loader(modname)
-            except ImportError as e:
-                objs[modname] = False
-                print(f"WARN: Importing {modname} from {path} failed")
-                continue
-            try:
-                mpath = mpath.get_filename()
-            except AttributeError:
-                print(f"WARN: In {path} Can't import {modname}")
-                objs[modname] = False
-                continue
-
-            subdict = do_check_imports(mpath, objs)
-            objs.update(subdict)
-    return objs
-
-    # if mpath in objs or is_builtin_module(mpath):
-    #     continue
 
 
 def get_module_name(astNode):

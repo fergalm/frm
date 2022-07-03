@@ -243,6 +243,8 @@ class ResetIndex(AbstractStep):
 
 class SelectCols(AbstractStep):
     def __init__(self, *cols_to_keep):
+        if len(cols_to_keep) == 1 and not isinstance(cols_to_keep[0], str):
+            cols_to_keep = cols_to_keep[0]  #We were given a single list
         self.cols = cols_to_keep
 
     def __repr__(self):
@@ -277,6 +279,7 @@ class SetCol(AbstractStep):
             )
 
         predicate = parsePredicate(df.columns, self.predicate)
+        #1/0
         df[self.col] = eval(predicate)
         return df
 

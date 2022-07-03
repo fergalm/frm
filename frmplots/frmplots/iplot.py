@@ -1,78 +1,27 @@
 from  ipdb import set_trace as idebug 
+from matplotlib.widgets import Cursor
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
 import numpy as np
 
-class InteractivePlot(object):
-    """An interactive plot
-    Clicking in the plot activates a requested function which can
-    interact with the data.
 
-    See exampleInteractivePlot() in this file
-    """
-    def __init__(self, df, xCol, yCol):
-        """
-
-        Inputs:
-        -------
-        data
-            (np.ndarray) Data to plot an interact with
-
-        xCol, yCol
-            (ints) Which columns of x and y to plot. See note below
-
-
-
-        Optional Inputs:
-        -----------
-        plotFunc
-            (function) The plotting function. It's signature must be
-            ::
-              python  plotFunc(data, xCol, yCol)
-
-        callback
-            (function) The function that is called when the plot is
-            clicked. It's signature must be
-            ::
-              callback(data, indexOfRow)
-            Index of row is computed by the class to be the row of
-            the point closest to where the most was clicked.
-
-            If not specified, a default callback is used that
-            just prints out the columns of the requested row.
-            see self.defaultCallback()
-
-
-        Notes:
-        ---------
-        plotFunc will be passed xCol and yCol, but is not required to
-        do anything with them. However, when the plot is clicked,
-        the object computes the row that minimises
-        ::
-          hypot( data[row, xCol] - xClick, data[row, yCol] - yClick)
-
-        and passed that row to the call back function. It will be
-        pretty confusing to the user if the xcol and ycol of data
-        are not plotted on the screen when this happens.
-
-        """
-
+class AbstractInteractivePlot():
+    def __init__(self):
         #Set input arguments as class variables.
-        arg = locals()
-        for var in arg:
-            setattr(self, var, arg[var])
 
-        self.plotFunc()
         self.fig1 = plt.gcf()
         self.fig2 = plt.figure()
-        plt.figure(self.fig1.number)
 
         self.updateEvent = 'key_press_event'
         self.fig1.canvas.mpl_disconnect(self.updateEvent)
         self.fig1.canvas.mpl_connect(self.updateEvent, self)
 
+        plt.figure(self.fig1.number)
+        plt.clf()
+        self.plotFunc()
+        plt.pause(.01)
 
 
     def __del__(self):
@@ -97,18 +46,28 @@ class InteractivePlot(object):
         plt.pause(.01)
         plt.figure(self.fig1.number)
 
-    def plotFunc(self,):
-        xCol, yCol = self.xCol, self.yCol
-        plt.clf()
-        plt.plot(self.df[xCol], self.df[yCol], 'C0o')
+    def disconnect(self):
+        self.fig1.canvas.mpl_disconnect(self.updateEvent)
 
-    def defaultCallback(self, x, y, key):
-        row = self.xyToRow(x, y)
-        print( key, self.df.iloc[row])
+    def plotFunc(self,):
+        raise NotImplementedError
+
+    def callback(self, x, y, key):
+        raise NotImplementedError
+
+
+class AbstractDataframeInteractivePlot(AbstractInteractivePlot):
+    def __init__(self, df, xCol, yCol):
+        self.df = df 
+        self.xCol = xCol 
+        self.yCol = yCol 
+
+        AbstractInteractivePlot.__init__(self) 
 
     def xyToRow(self, x, y):
-        xvals = self.df[self.xCol]
-        yvals = self.df[self.yCol]
+        """Utility function to convert x,y to a row in a dataframe"""
+        xvals = self.df[self.xCol].values
+        yvals = self.df[self.yCol].values
 
         #Work around date issues
         if isinstance(xvals[0], pd.Timestamp):
@@ -128,12 +87,95 @@ class InteractivePlot(object):
         row = np.argmin(dist)
         return row
 
-    def disconnect(self):
-        """Disconnect the figure from the interactive object
+class InteractivePlot(AbstractDataframeInteractivePlot):
+    """
+    
+    This is an example implementation
 
-        This method is called by the destructor, but Python
-        doesn't always call the destructor, so you can do so
-        explicitly.         And probl should
+    Clicking in the plot activates the callback function which
+    prints the relevant row in the dataframe
+
+    See exampleInteractivePlot() in this file
+    """
+    def __init__(self, df, xCol, yCol):
         """
-        print ("Disconnecting...")
-        plt.gcf().canvas.mpl_disconnect(self.updateEvent)
+
+        Inputs:
+        -------
+        data
+            (np.ndarray) Data to plot an interact with
+
+        xCol, yCol
+            (ints) Which columns of x and y to plot. See note below
+
+
+
+        Notes:
+        ---------
+        plotFunc will be passed xCol and yCol, but is not required to
+        do anything with them. However, when the plot is clicked,
+        the object computes the row that minimises
+        ::
+          hypot( data[row, xCol] - xClick, data[row, yCol] - yClick)
+
+        and passed that row to the call back function. It will be
+        pretty confusing to the user if the xcol and ycol of data
+        are not plotted on the screen when this happens.
+
+        """
+
+        AbstractDataframeInteractivePlot.__init__(self, df, xCol, yCol)
+
+    def plotFunc(self,):
+        xCol, yCol = self.xCol, self.yCol
+        plt.clf()
+        plt.plot(self.df[xCol], self.df[yCol], 'C0o')
+
+    def callback(self, x, y, key):
+        row = self.xyToRow(x, y)
+        print( key, self.df.iloc[row])
+
+
+
+
+
+class Crosshairs:
+    """
+    A cross hair cursor.
+
+    Draw a curson consisting of vertical and horizontal lines centered
+    on the mouse. The cursor updates with each mouse move.
+
+    """
+    def __init__(self, ax=None):
+        if ax is None:
+            ax = plt.gca()
+
+        self.ax = ax
+        self.horizontal_line = ax.axhline(color='k', lw=0.8, ls='--')
+        self.vertical_line = ax.axvline(color='k', lw=0.8, ls='--')
+        # text location in axes coordinates
+        self.text = ax.text(0.72, 0.9, '', transform=ax.transAxes)
+    
+        plt.gcf().canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+
+    def set_cross_hair_visible(self, visible):
+        need_redraw = self.horizontal_line.get_visible() != visible
+        self.horizontal_line.set_visible(visible)
+        self.vertical_line.set_visible(visible)
+        self.text.set_visible(visible)
+        return need_redraw
+
+    def on_mouse_move(self, event):
+        if not event.inaxes:
+            need_redraw = self.set_cross_hair_visible(False)
+            if need_redraw:
+                self.ax.figure.canvas.draw()
+        else:
+            self.set_cross_hair_visible(True)
+            x, y = event.xdata, event.ydata
+            # update the line positions
+            self.horizontal_line.set_ydata(y)
+            self.vertical_line.set_xdata(x)
+            self.text.set_text('x=%1.2f, y=%1.2f' % (x, y))
+            self.ax.figure.canvas.draw()

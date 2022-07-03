@@ -3,8 +3,8 @@ import scipy.ndimage as spimg
 import numpy as np
 
 #Functions included as a convenience
-from frm.plateau import plateau, convert_plateau_to_index
-from frm.gapfill import fill_gaps
+from frmbase.plateau import plateau, convert_plateau_to_index
+from frmbase.gapfill import fill_gaps
 
 def median_detrend(y, filtersize):
     """Apply a median-detrend high pass filter to y

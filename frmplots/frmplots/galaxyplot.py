@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def galaxyPlot(data, colList, *args, **kwargs):
+def galaxyPlot(df, colList, *args, **kwargs):
     """Plot everything against everything
 
     Just like extra galactic astronomers are wont to do.
 
     Inputs:
     -------------
-    data
-        (2d array) Data to be plotted
+    df
+        (Dataframe) Data to be plotted
 
     colList
         (list) list of column numbers to plot. Must have at least
@@ -64,6 +64,11 @@ def galaxyPlot(data, colList, *args, **kwargs):
     is a set of limits, and default values will be chosen for all
     other dimensions
 
+    TODO
+    ------
+    * Adapt code to convert input numpy arrays to dataframes.
+    * colList should be an optional argument
+
     """
 
     labels = kwargs.pop('labels', colList)
@@ -74,12 +79,11 @@ def galaxyPlot(data, colList, *args, **kwargs):
     wantLog = kwargs.pop('wantLog', wantLog)
     assert( len(wantLog) == len(colList))
 
-#    hold = kwargs.pop('hold', False)
-
     limits = np.zeros(len(colList), dtype=bool)
     limits = kwargs.pop('limits', limits)
     assert( len(limits) == len(colList))
 
+    #TODO Convert numpy to dataframe if numpy is input
 
     nCol = len(colList)
     nPlot = nCol-1
@@ -105,28 +109,24 @@ def galaxyPlot(data, colList, *args, **kwargs):
     #i loops over the y-axes (the rows)
     for i in range(nCol):
 
-        idx = np.isfinite(data[:, colList[i]])
-
         #Pick y limits for subplot. If not supplied, use range of data
         if hasattr(limits[i], "__len__") and len(limits[i]) == 2:
             yLwr, yUpr = limits[i]
         else:
-            yLwr = np.min(data[idx, colList[i]])
-            yUpr = np.max(data[idx, colList[i]])
+            yLwr = np.nanmin(df[colList[i]])
+            yUpr = np.nanmax(df[colList[i]])
 
         #j loops over the x-axes (the columns)
         for j in range(0, i):
             ax = axArray[i,j]
             plt.sca(ax)
 
-            plotFunc(data[:, colList[j]], data[:, colList[i]], \
+            plotFunc(df[colList[j]], df[colList[i]], \
                 markersize=ms, *args, **kwargs)
-#            plt.text(.3, .3, "%i %i" %(i,j), transform=ax.transAxes )
 
             #Add decorations for the subplot
             if j== i-1:
                 plt.title(labels[j])
-#                plt.title("i=%i j=%i n=%i" %(i,j,n))
 
             if j == 0:
                 plt.ylabel(labels[i])
@@ -155,8 +155,8 @@ def galaxyPlot(data, colList, *args, **kwargs):
             if hasattr(limits[j], "__len__") and len(limits[j]) == 2:
                 plt.xlim(limits[j])
             else:
-                xLwr = np.min(data[idx, colList[j]])
-                xUpr = np.max(data[idx, colList[j]])
+                xLwr = np.min(df[colList[j]])
+                xUpr = np.max(df[colList[j]])
                 plt.xlim([xLwr, xUpr])
             plt.ylim([yLwr, yUpr])
 

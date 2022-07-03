@@ -154,7 +154,7 @@ class Logger:
     def setLevel(self, level):
         self.level = level
 
-    def getLevel(self, level):
+    def getLevel(self):
         return self.level
 
     def log_exception(self, exc, level=ERROR):

@@ -21,7 +21,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.patheffects as meffect
 import matplotlib.colors as mcolors
 import matplotlib.ticker as mticker
-import matplotlib.patches as mpatch
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
@@ -29,6 +29,7 @@ import numpy as np
 import pickle
 import copy
 
+from . import norm as fnorm
 from . galaxyplot import galaxyPlot
 from . import plotstyle
 
@@ -59,8 +60,73 @@ def add_figure_labels(xlabel, ylabel, **kwargs):
     plt.sca(ax)
 
 
+def annotate_histogram(vals, bins, **kwargs):
+    """Prints the number of elements in a histogram on top of each bar.
+
+    Slightly experimental. Only works for vertical histograms. Behaviour
+    for multiple bars of the same height not well tested. 
+
+    Example
+    ------------
+    ::
+
+        bins, vals, _ = plt.hist(data)
+        annotate_histogram(bins, vals, color='red', fontsize=14)
+
+    Inputs
+    ---------
+    vals, bins
+        The two arrays returned by `np.histogram`, or the first two values
+        returned by matplotlib's `hist` command
+    
+    Optional Arguments
+    ---------------------
+    fmt
+        (string) Format string for the numbers. Default is '%g'
+    ha
+        (string) Horizontal alignment of text. Defaults to center.
+    above=True
+        (bool) Whether annotations should be above or below the point 
+    All other arguments are passed to `plt.text`
+
+    """
+    #Define some default values
+    fmt = kwargs.pop('fmt', '%g')
+    ha = kwargs.pop('ha', 'center')
+    offset_sign = 2* kwargs.pop('above', True) - 1
+
+    va = kwargs.pop('va', None)
+    if va is None:
+        if offset_sign > 0:
+            va = 'bottom'
+        else:
+            va = 'top'
+
+    if len(bins) == len(vals):
+        locs = bins
+    elif len(bins) == len(vals) + 1:
+        locs = bins[:-1] + .5* np.diff(bins)
+
+    offset = offset_sign * .04 * (np.max(vals) - np.min(vals))
+    sign = -1
+    old = 0
+    for xpos, val in zip(locs, vals):
+        if val <= 0:
+            continue 
+
+        ypos = val + offset
+        if np.fabs(ypos - old) < offset:
+            ypos += sign * offset 
+            sign *= -1
+        
+        old = ypos 
+        plt.text(xpos, ypos + offset, fmt%(val), ha=ha, va=va, **kwargs)
+
+
 def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
     """Draw a whisker at the bottom of the plot for each value of x
+
+    See also plt.eventplot()
 
     This is useful if your points are clustered together too closely to be seen, but for 
     some reason the densityPlot() isn't suitable for your plot.
@@ -152,6 +218,8 @@ def borderplot(x, y, *args, **kwargs):
     return ax, xh, yh
 
 
+
+
 def densityPlot(x,y, xBins, yBins, *args, **kwargs):
     """
     Plot x against y as points where points are sparse, but as shaded region when crowded.
@@ -205,7 +273,7 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
     """
     threshold = kwargs.pop('threshold', 10)
     cmap = kwargs.pop('cmap', DEFAULT_CMAP)
-    norm = kwargs.pop('norm', None)
+    norm = kwargs.pop('norm', fnorm.DiscreteNorm(7))
     ls = kwargs.pop('ls', "none")
     ls = kwargs.pop('linestyle', ls)
     marker = kwargs.pop('marker', 'o')
@@ -222,8 +290,29 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
 
 
 def fix_date_labels():
-    """Format date strings in x-axis label so they're easier to read"""
+    """Format date strings in x-axis label so they're easier to read
+    
+    Note
+    ----------
+    To get minor ticks once per day add the following code
+    to your function after you call fix_date_labels()::
+
+        import matplotlib.ticker as mticker
+        ax.xaxis.set_minor_locator(mticker.IndexLocator(1, 0))
+
+    This only works if you want one tick per day, and isn't helpful
+    for much longer or shorter date spans
+
+    """
     plt.gcf().autofmt_xdate()
+
+    #If the xaxis range is of order 1 month, set the major ticks
+    #to be once weekly
+    locator = mdates.AutoDateLocator(minticks=2, maxticks=7, interval_multiples=False)
+    locator.intervald['DAILY'] = 7
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(locator)
+
 
 
 def load_figfile(filename):
@@ -262,6 +351,42 @@ def mark_weekends(timestamps, tz='UTC'):
 
     try:
         handle.set_label("Weekend")
+    except UnboundLocalError:
+        #No weekends marked
+        pass
+
+
+def mark_nights(timestamps, tz='UTC'):
+    """Plot grey bars to indicate night time in the central timezone"""
+    t1 = min(timestamps)
+    t2 = max(timestamps)
+
+    t1 = "%04i-%02i-%02i 22:00" %(t1.year, t1.month, t1.day)  #10pm
+    t2 = "%04i-%02i-%02i 22:00" %(t2.year, t2.month, t2.day)  #8am
+    # print (t1, t2)
+
+    day_start = pd.date_range(start=t1, end=t2, freq='D')
+    day_start = day_start.tz_localize(tz)
+
+    delta = pd.to_timedelta("10H")
+    for day in day_start:
+        handle = plt.axvspan(day, day+delta, color='b', alpha=.1)
+
+    #Edge case: First day of data set is Sunday
+    # day = day_start[0]
+    # if day.dayofweek == 6:
+    #     delta = pd.to_timedelta("1D")
+    #     handle = plt.axvspan(day-delta, day+delta, color='b', alpha=.1)
+    #     plt.xlim(xmin=min(timestamps))
+
+    # for day in day_start:
+    #     if day.dayofweek == 5:
+    #         delta1 = pd.to_timedelta("6H")
+    #         delta2 = pd.to_timedelta("30H")
+    #         handle = plt.axvspan(day-delta1, day+delta2, color='b', alpha=.1)
+
+    try:
+        handle.set_label("10pm-8am")
     except UnboundLocalError:
         #No weekends marked
         pass

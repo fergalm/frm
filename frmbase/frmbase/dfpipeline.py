@@ -24,7 +24,6 @@ class AbstractStep:
 
 def runPipeline(tasks, df=None):
     """ """
-
     for i, t in enumerate(tasks):
         try:
             df = t.apply(df)
@@ -37,6 +36,14 @@ def runPipeline(tasks, df=None):
             raise e
 
     return df
+
+
+def pipelineToString(pipeline):
+    """Convert a pipeline to a list of strings"""
+    strs = list(map(str, pipeline))
+    return strs
+    #return "\n".join(strs)
+
 
 def pipelineAsString(pipeline):
     """Create a string describing the steps in a pipeline
@@ -138,7 +145,7 @@ class DropDuplicates(AbstractStep):
 
 
     def apply(self, df):
-        return df.drop_duplicates(self.cols, keep="first")
+        return df.drop_duplicates(self.cols, keep="first").copy()
 
 
 class DropCol(AbstractStep):
@@ -283,6 +290,41 @@ class SetCol(AbstractStep):
         df[self.col] = eval(predicate)
         return df
 
+class SetDayNum(AbstractStep):
+    """
+    Compute the number of days since some epoch.
+    This can be useful when trying to group elements of a timeseries
+    by day.
+
+    Caution: This class does NOT respect timezones. So
+    2011-09-21 00:00  2011-09-21 00:00-0500 return the same value
+    of 15238
+
+    TODO: Unit test!
+    """
+
+    def __init__(self, datecol='date', daynumcol='daynum', dtype=float):
+        self.daynumcol = daynumcol 
+        self.datecol = datecol
+        
+        assert dtype in [int, float], "Dtype must be either int or float"
+        self.dtype = dtype 
+    
+    def apply(self, df):
+        jd0 = 2440587.5  #1970-01-01 00:00
+        date = pd.to_datetime(df[self.datecol])
+        jd  = pd.DatetimeIndex(date).to_julian_date()
+        # jd = date.dt.to_julian_date()
+        daynum = (jd - jd0).astype(self.dtype)
+        df[self.daynumcol] = daynum
+        return df 
+
+class Sort(AbstractStep):
+    def __init__(self, col):
+        self.col = col 
+
+    def apply(self, df):
+        return df.sort_values(self.col)
 
 class ToDatetime(AbstractStep):
     """Convert a column to a datetime"""

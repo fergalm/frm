@@ -4,6 +4,7 @@ from __future__ import division
 
 import matplotlib.pyplot as mp
 import matplotlib as mpl
+import numpy as np
 
 import datetime as dt
 import inspect
@@ -52,9 +53,13 @@ def add_minor_ticks():
         a.set_tick_params(which="minor", length=4, width=1, color='k')
 
 
+def remove_minor_ticks():
+    ax = mp.gca()
+    for a in [ax.xaxis, ax.yaxis]:
+        a.set_minor_locator(mpl.ticker.NullLocator())
 
 
-def add_watermark(level=0):
+def add_watermark(level=0, loc='right'):
     """Put an mark on the bottom right of a figure identifing
     plot creator, date, and source file.
 
@@ -76,10 +81,19 @@ def add_watermark(level=0):
     text = create_watermark_text(level+1)
     ax = mp.gca()
     f = mp.gcf()
-    ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
+
+    if loc == 'right':
+        ax.text(0.93, 0.88, text, rotation=90, size=8, transform=f.transFigure, ha="right", va="top")
+    elif loc == 'bottom':
+        ax.text(0.95, 0.01, text, size=8, transform=f.transFigure, ha="right")
+    elif loc == 'top':
+        ax.text(0.95, 0.96, text, size=8, transform=f.transFigure, ha="right")
+    else:
+        raise ValueError("loc should be one of 'right', 'top', or 'bottom'")
 
     
 def create_watermark_text(level=0):
+    """Create the text string for the watermark. See add_watermark for details"""
     user = os.environ['USER']
 
     full_fn = '/.'
@@ -106,8 +120,7 @@ def create_watermark_text(level=0):
         git_hash = git_meta['__git_branch_commit_sha__']
         git_status = git_meta['__git_commit_status__'][0] #One char
         git_hash = "%s (%s)" %(git_hash, git_status)
-    except (ImportError, KeyError) as e:
-        print(e)
+    except (ImportError, KeyError):
         git_hash = ""
 
     text = "%s %s %s %s" % (user, fn, time, git_hash)

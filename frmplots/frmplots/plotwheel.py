@@ -1,12 +1,8 @@
 
 from  ipdb import set_trace as idebug 
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-import pandas as pd
-import numpy as np
 import re
 
-import frmplots.plots as fplots
 
 
 class PlotWheel(object):
@@ -73,9 +69,9 @@ class PlotWheel(object):
 
         See GroupPlotWheel for an example
         """
-        return self.plotFunc(i)
+        return self.plot(i)
 
-    def plotFunc(self, i):
+    def plot(self, i):
         raise NotImplementedError
 
 
@@ -92,7 +88,7 @@ class GroupPlotWheel(PlotWheel):
         df = self.gr.get_group(name) 
         
         plt.clf()
-        self.plotFunc(df, name, i)
+        self.plot(df, name, i)
         plt.pause(.01)
 
     def get_savefile_name(self, i):
@@ -100,7 +96,7 @@ class GroupPlotWheel(PlotWheel):
         name = re.sub(" ", "_", name)
         return "%s.png" %(name)
 
-    def plotFunc(sef, df, name, i):
+    def plot(self, df, name, i):
         """
 
         Implement this method in the child class to create the particular plot you want.

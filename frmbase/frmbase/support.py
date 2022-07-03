@@ -112,27 +112,51 @@ def int_to_bin_str(arr):
 
 
 
-def load_parquet(pattern):
-    """Load a set of paraquet files into a single dataframe
+def load_df_from_pattern(pattern, loader=None, **kwargs):
+    """Load a set of files whose paths match pattern
 
-    This only works for local files.
+    This only works for local files. Results are 
+    stored in a dataframe
 
     Inputs
     --------
     pattern (str)
         A string that is globbed to find all appropriate files on disk
+    loader (func)
+        Function that loads individual files. Must return a dataframe.
+        Eg pd.read_csv, pd.read_parquet, etc
+
+    All optional inputs are passed to `loader`
 
     Returns
     ----------
     A Pandas dataframe
     """
+    #Just because function exists, doesn't mean required packages
+    #are installed
+    opts = dict(
+        csv=pd.read_csv,
+        parquet=pd.read_parquet,
+        json=pd.read_json,
+        xls=pd.read_excel,
+    )
 
     flist = glob(pattern)
 
     if len(flist) == 0:
         raise ValueError("No files found matching %s" %(pattern))
 
-    dflist = list(map(lambda x: pd.read_parquet(x), flist))
+    #Choose a loading function
+    if loader is None:
+        ext = os.path.splitext(flist[0])[-1]
+        ext = ext[1:]  #Remove . at start
+        try:
+            loader = opts[ext]
+        except KeyError:
+            raise ValueError("Unrecognised file type %s" %(ext))
+
+    f = lambda x: loader(x, **kwargs)
+    dflist = list(map(f, flist))
     return pd.concat(dflist)
 
 

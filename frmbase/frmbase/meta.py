@@ -28,6 +28,24 @@ except ImportError:
     pass 
 
 
+class MyJsonEncoder(json.encoder.JSONEncoder):
+    """If an object to be serialised has a __json__ method, use 
+    that for serialisation. Otherwise try default encoding,
+    and fall back on a string representation
+    """
+
+    def default(self, obj):
+        if hasattr(obj, '__json__'):
+            if callable(obj.__json__):
+                return obj.__json__()
+            else:
+                return obj.__json__ 
+        try:
+            return super(MyJsonEncoder, self).default(obj)
+        except TypeError:
+            return str(obj)
+
+
 def save_state(statefile, **kwargs):
     """Write out the values local variables to a json file
 
@@ -57,7 +75,7 @@ def save_state(statefile, **kwargs):
 
     Example
     -----------
-    .. code-block:: python
+    ::
 
         numSim = 1000
         alpha = .5
@@ -70,15 +88,18 @@ def save_state(statefile, **kwargs):
     small objects. json may reject things like classes and arrays,
     or may produce large, unreadable output. If you have such data
     you may perfer to use `save_metadata` instead.
+
+    * Classes can be saved if you add a __json__() method to convert
+    the class to a dict
     """
     frame = kwargs.pop('frame', inspect.currentframe().f_back)
     # params = dict(frame.f_locals)
 
     # kwargs.update(params)
-    out = get_state(frame=frame, **kwargs)
+    jsonstr = get_state(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2)
+        fp.write(jsonstr)
 
 
 def save_metadata(statefile, **kwargs):
@@ -130,14 +151,13 @@ def save_metadata(statefile, **kwargs):
     * See also `save_state`
     """
     frame = kwargs.pop('frame', inspect.currentframe().f_back)
-    out = get_metadata(frame=frame, **kwargs)
+    jsonstr = get_metadata(frame=frame, **kwargs)
 
     with open(statefile, 'w') as fp:
-        json.dump(out, fp, indent=2)
+        fp.write(jsonstr)
 
 
-
-def get_state(**kwargs):
+def get_state(**kwargs) -> str:
     """Get the state of local variables.
 
     This function performs the same function as save_state, but
@@ -171,7 +191,7 @@ def get_state(**kwargs):
     return get_metadata(frame=frame, **kwargs)
 
 
-def get_metadata(**kwargs):
+def get_metadata(**kwargs) -> str:
     """Save some metadata to a dictionary
 
     This function performs the same function as get_state, but
@@ -184,7 +204,7 @@ def get_metadata(**kwargs):
 
     Example
     -----------
-    .. code-block:: python
+    :: 
 
         numSim = 1000
         alpha = .5
@@ -226,14 +246,17 @@ def get_metadata(**kwargs):
 
     #Add docstring from calling function
     name = frame.f_code.co_name
-    params['__doc__'] = frame.f_globals[name].__doc__    
+    docstring = frame.f_globals[name].__doc__    
+    if isinstance(docstring, str):  #If no docstring, will be None
+        docstring = docstring.split('\n')
+    params['__doc__'] = docstring
 
     params.update(kwargs)
-    return params
+    return json.dumps(params, indent=2, cls=MyJsonEncoder)
 
 
 
-def get_git_info(filename):
+def get_git_info(filename) -> dict:
     params = dict()
 
     if filename[0] != '/' and filename[1] != ':':
@@ -260,7 +283,7 @@ def get_git_info(filename):
 
 
 
-def get_git_repo(filename):
+def get_git_repo(filename) -> str:
     sep = os.path.sep
     tokens = filename.split(sep)
 
@@ -272,12 +295,12 @@ def get_git_repo(filename):
             continue
 
 
-    raise IOError("%s does not appeat to belong to a git repo" %(filename))
+    raise IOError("%s does not appear to belong to a git repo" %(filename))
 
 
 
 
-def get_commit_status(repo, filename):
+def get_commit_status(repo, filename) -> str:
     #Windows work around. gitpython stores paths with forward slash
     sep = os.path.sep 
     filename = filename.replace(sep, '/')

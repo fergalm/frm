@@ -49,52 +49,65 @@ class DiscreteNorm(mcolors.BoundaryNorm):
         norm = DiscreteNorm(ncolors)
         plt.scatter(x, y, norm=norm)
 
+
     """
 
     def __init__(self, ncolors, vmin=None, vmax=None, clip=False):
-        self.clip = clip
+        mcolors.Normalize.__init__(self, vmin, vmax, clip)
+ 
+        # self._clip = clip
         self.ncolors = ncolors
-        self.vmin = vmin
-        self.vmax = vmax
-        self.boundaries = None
+        # self._vmin = vmin
+        # self._vmax = vmax
+        self.bounds = None
+
+    @property
+    def boundaries(self):
+        if self.bounds is None:
+            if self._vmin is None or self._vmax is None:
+                raise ValueError("Unusual error in norm. Please set vmin and vmax")
+            self.bounds = self.computeBoundaries()
+        return self.bounds
+
 
     def autoscale_None(self, A):
         """autoscale only None-valued vmin or vmax."""
+        # import ipdb; ipdb.set_trace()
         A = np.asanyarray(A)
-        if self.vmin is None and A.size:
-            self.vmin = A.min()
-        if self.vmax is None and A.size:
-            self.vmax = A.max()
+        if self._vmin is None and A.size:
+            self._vmin = A.min()
+        if self._vmax is None and A.size:
+            self._vmax = A.max()
 
-        if self.boundaries is None:
-            self.boundaries = self.computeBoundaries(A)
+        if self.bounds is None:
+            self.bounds = self.computeBoundaries(A)
 
 
-    def computeBoundaries(self, x):
-        return np.linspace(self.vmin, self.vmax, self.ncolors+1)
+    def computeBoundaries(self, x=None):
+        return np.linspace(self._vmin, self._vmax, self.ncolors+1)
 
     def __call__(self, values, clip=None):
         if clip is None:
-            clip = self.clip
+            clip = self._clip
 
         xx, is_scalar = self.process_value(values)
 
         #Perform clipping if necessary
         if clip:
-            np.clip(xx, self.vmin, self.vmax, out=xx)
+            np.clip(xx, self._vmin, self._vmax, out=xx)
 
         self.autoscale_None(xx)
 
         #Set norm values
-        scale = float(len(self.boundaries) -2 )
+        scale = float(len(self.bounds) -2 )
         iret = np.zeros(xx.shape, dtype=float)
-        for i, b in enumerate(self.boundaries):
+        for i, b in enumerate(self.bounds):
             iret[xx > b] =  (i / scale)
         iret *= .999999
 
         #Set norm values for out-of-bounds inputs
-        iret[xx < self.vmin] = -1
-        iret[xx > self.vmax] = 2
+        iret[xx < self._vmin] = -1
+        iret[xx > self._vmax] = 2
 
         #Convert to masked array?
         mask = np.ma.getmaskarray(xx)
@@ -105,28 +118,74 @@ class DiscreteNorm(mcolors.BoundaryNorm):
 
         return ret
 
+    def inverse(self, value):
+        raise ValueError("Not invertable")
+#   def __call__(self, value, clip=None):
+#         """
+#         Normalize *value* data in the ``[vmin, vmax]`` interval into the
+#         ``[0.0, 1.0]`` interval and return it.
+
+#         Parameters
+#         ----------
+#         value
+#             Data to normalize.
+#         clip : bool
+#             If ``None``, defaults to ``self.clip`` (which defaults to
+#             ``False``).
+
+#         Notes
+#         -----
+#         If not already initialized, ``self.vmin`` and ``self.vmax`` are
+#         initialized using ``self.autoscale_None(value)``.
+#         """
+#         if clip is None:
+#             clip = self.clip
+
+#         result, is_scalar = self.process_value(value)
+
+#         self.autoscale_None(result)
+#         # Convert at least to float, without losing precision.
+#         (vmin,), _ = self.process_value(self.vmin)
+#         (vmax,), _ = self.process_value(self.vmax)
+#         if vmin == vmax:
+#             result.fill(0)   # Or should it be all masked?  Or 0.5?
+#         elif vmin > vmax:
+#             raise ValueError("minvalue must be less than or equal to maxvalue")
+#         else:
+#             if clip:
+#                 mask = np.ma.getmask(result)
+#                 result = np.ma.array(np.clip(result.filled(vmax), vmin, vmax),
+#                                      mask=mask)
+#             # ma division is very slow; we can take a shortcut
+#             resdat = result.data
+#             resdat -= vmin
+#             resdat /= (vmax - vmin)
+#             result = np.ma.array(resdat, mask=result.mask, copy=False)
+#         if is_scalar:
+#             result = result[0]
+#         return result
 
 class FixedDiscreteNorm(DiscreteNorm):
     """Set the boundaries between the colours directly"""
     def __init__(self, boundaries, vmin=None, vmax=None, clip=False):
-        self.clip = clip
-        self.vmin = vmin
-        self.vmax = vmax
-        self.boundaries = np.array(boundaries)
+        self.mclip = clip
+        self.mvmin = vmin
+        self.mvmax = vmax
+        self.bounds = np.array(boundaries)
         self.ncolors = len(boundaries)
 
 class PercentileNorm(DiscreteNorm):
     """Not tested"""
     def __init__(self, levels, vmin=None, vmax=None, clip=False):
-        self.clip = clip
-        self.vmin = vmin
-        self.vmax = vmax
+        self.mclip = clip
+        self.mvmin = vmin
+        self.mvmax = vmax
         self.pct_levels= levels
 
     def computeBoundaries(self, x):
         eps = np.finfo(np.float32).eps
         x = np.array(x)  #Strip out array masking if necessary
-        x = x[ (x >= self.vmin) & (x <= self.vmax)]
+        x = x[ (x >= self.mvmin) & (x <= self.mvmax)]
 
         boundaries = np.percentile(x, self.pct_levels)
         boundaries[-1] += eps
@@ -141,7 +200,7 @@ class DiscreteLog10Norm(DiscreteNorm):
 
     def computeBoundaries(self, x):
         x = np.array(x)
-        x = x[ (x >= self.vmin) & (x <= self.vmax)]
+        x = x[ (x >= self._vmin) & (x <= self._vmax)]
 
         if np.any(x <=0):
             raise ValueError("Can't apply log normalisation to negative numbers")
@@ -176,10 +235,9 @@ class HistEquNorm(DiscreteNorm):
 
     def computeBoundaries(self, x):
         x = np.array(x)  #Strip out array masking if necessary
-        # eps = np.finfo(np.float32).eps
         thresholds = np.linspace(0, 100, self.ncolors+1)
 
-        x = x[ (x >= self.vmin) & (x <= self.vmax)]
+        x = x[ (x >= self._vmin) & (x <= self._vmax)]
         boundaries = np.percentile(x, thresholds)
         boundaries[-1] += eps
 

@@ -281,60 +281,6 @@ def printe(val, err, sigdig=2, pretty=True):
     return strr
 
 
-def sigma_clip(y, nSigma, maxIter=1e4, initialClip=None):
-    """Iteratively find and remove outliers
-    Find outliers by identifiny all points more than **nSigma** from
-    the mean value. The recalculate the mean and std and repeat until
-    no more outliers found.
-    Inputs:
-    ----------
-    y
-        (1d numpy array) Array to be cleaned
-    nSigma
-        (float) Threshold to cut at. 5 is typically a good value for
-        most arrays found in practice.
-    Optional Inputs:
-    -------------------
-    maxIter
-        (int) Maximum number of iterations
-    initialClip
-        (1d boolean array) If an element of initialClip is set to True,
-        that value is treated as a bad value in the first iteration, and
-        not included in the computation of the mean and std.
-    Returns:
-    ------------
-    1d numpy array. Where set to True, the corresponding element of y
-    is an outlier.
-    """
-    #import matplotlib.pyplot as mp
-    idx = initialClip
-    if initialClip is None:
-        idx = np.zeros( len(y), dtype=bool)
-
-    assert(len(idx) == len(y))
-
-    #x = np.arange(len(y))
-    #mp.plot(x, y, 'k.')
-
-    oldNumClipped = np.sum(idx)
-    for i in range(int(maxIter)):
-        mean = np.nanmean(y[~idx])
-        std = np.nanstd(y[~idx])
-
-        newIdx = np.fabs(y-mean) > nSigma*std
-        newIdx = np.logical_or(idx, newIdx)
-        newNumClipped = np.sum(newIdx)
-
-        #print "Iter %i: %i (%i) clipped points " \
-            #%(i, newNumClipped, oldNumClipped)
-
-        if newNumClipped == oldNumClipped:
-            return newIdx
-
-        oldNumClipped = newNumClipped
-        idx = newIdx
-        i+=1
-    return idx
 
 
 
@@ -429,45 +375,6 @@ def timer(func):
     return wrapperForFunc
 
 
-# def cache(func, cache_dir=None):
-#     """Decorator to run a function and cache its output.
-
-#     Can be used, eg, for database queries or url queries where
-#     the results are not expected to change
-
-#     Notes
-#     ----------
-#     Can only be used to decorate functions that take a single argument.
-#     Should I change that to cached based on the first argument?
-#     """
-
-#     if cache_dir is None:
-#         cache_dir = os.path.join(os.environ['HOME'], ".cache", "fergal")
-
-#     if not os.path.exists(cache_dir):
-#         os.mkdir(cache_dir)
-
-#     def wrapperForFunc(*args, **kwargs):
-#         if len(args) > 1 or len(kwargs) > 0:
-#             raise ValueError("cache decorator only works for functions with 1 argument")
-#         cache_name = "query%s" %( str( hash(args[0]) ) )
-#         cache_name = os.path.join(cache_dir, cache_name)
-
-#         #If result is cached, use it
-#         if os.path.exists(cache_name):
-#             with open(cache_name) as fp:
-#                 text = fp.read()
-#             return text
-
-#         #Else, query for the result, cache it, then return it.
-#         text = func(args[0])
-#         with open(cache_name, 'w') as fp:
-#             fp.write(text)
-#         return text
-
-
-    return wrapperForFunc
-
 
 def check_cols_in_df(df, cols):
     """Because I always get this wrong"""
@@ -495,35 +402,6 @@ def check_columns_in_df(df, cols):
 
 
 
-
-
-##############################################################
-#Examples for testing
-
-@timer
-def test_example1():
-    """Run this from console and you should see the appropriate text being printed"""
-    import time
-    time.sleep(3)
-
-# @cache
-# def _example2(query):
-#     return "This is the result of the query as pure text"
-
-def test_example2():
-    query = "This is a query string. Maybe it's SQL, maybe it's a URL"
-    _example2(query)
-
-    fn = os.path.join(os.environ['HOME'], ".cache", "fergal")
-    fn = os.path.join(fn,  "query%s" % (str(hash(query))))
-    print (fn)
-    assert os.path.exists(fn)
-
-    with open(fn) as fp:
-        text = fp.read()
-
-    msg = "Cached text: >>%s<<" %(text)
-    assert text == "This is the result of the query as pure text", msg
 
 
 

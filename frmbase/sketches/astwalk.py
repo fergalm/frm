@@ -1,151 +1,41 @@
-from ipdb import set_trace as idebug
 from pprint import pprint
-from glob import glob 
-import pkgutil 
-import ast
+import frmbase.checkimports as ci
 
-
-def get_import_hashes(path, objs=None):
-    if objs is None:    
-        objs = dict()
-
-    if path in objs or is_builtin_module(path):
-        #Already visited, or is builtin module
-        return objs 
-    else:
-        objs[path] = get_hash(path)
-        process_module(path, objs)
-    return objs 
-
-
-def process_module(path, objs):
-    sub_modules = find_module_names_in_file(path)
-
-    for modname in sub_modules:
-        mpath = get_path_to_module(modname)
-        if mpath == "":
-            continue 
-
-        #Recursively search that module
-        subdict = get_import_hashes(mpath, objs)
-        objs.update(subdict)
-    return objs
-
-def get_path_to_module(modname):
-    #Get path of module
-    try:
-        mpath = pkgutil.get_loader(modname)
-        mpath = mpath.get_filename()
-    except (AttributeError, ImportError) as e:
-        print(f"WARN: Importing {modname} from {path} failed with error {e}")
-        return ""
-
-
-def find_module_names_in_file(path):
-    """
+class ImportMonitor(dict):
+    """Track the edit state of all imports for a module
     
-    This fails for imports of type::
+    `check_imports` computes a hash of the contents of every python
+    module imported by the module pointed to by `path`. This
+    class checks to see if any of those hashes have changed since the 
+    last call.
 
-        from . import foo
-        from .. import foo
-
-    
+    TODO
+    -----
+    Should this class take a module name instead of a path?
     """
-    modules = []
-    text = get_text(path)
-    if len(text) == 0:
-        return modules
+    def __init__(self):
+        self.current_state = dict()
 
-    nodes = ast.parse(text)
-    for node in ast.walk(nodes):
-        if isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
-            modules.append(get_module_name(node))
-    return modules
+    def have_imports_changed(self, path):
+        new_state = ci.check_imports(path)
+        new_state = self.update_state_to_hash(new_state)
 
+        flag = False 
+        if set(new_state.keys()) != set(self.current_state.keys()):
+            flag = True 
+        else:
+            for k in new_state.keys():
+                if new_state[k] != self.current_state[k]:
+                    flag = True 
+                    break 
+        self.current_state = new_state 
+        return flag 
 
-def alt_find_module_names_in_file(path):
-    """
-    
-    This doesn't do any better than original yet"""
-    modules = []
-    text = get_text(path)
-    if len(text) == 0:
-        return modules
+    def update_state_to_hash(new_state):
+        #Update values from booleans to hashes
+        for k in new_state:
+            if new_state[k]:
+                new_state[k] = ci.get_hash(k)
+        return new_state 
 
-    for line in text:
-        words = line.split()
-        if words[0] == 'import':
-            modname = words[1]
-        elif words[0] == 'from' and words[2] == 'import':
-            if words[1] == '.':
-                #Do something 
-                pass 
-            elif words[2] == '..':
-                #Do something
-                pass
-            modname = ".".join([words[1], words[3]])
-        modules.append(modname)
-    return modules
-
-
-
-
-def get_module_name(astNode):
-    try:
-        modname = astNode.module 
-    except AttributeError:
-        modname = None 
-
-    #Sometimes happens without throwing exception
-    if modname is None:
-        modname = astNode.names[0].name 
-    return modname
-
-
-def get_hash(path):
-    text = get_text(path)
-    return hash(text)
-
-
-def get_text(path):
-    try:
-        with open(path) as fp:
-            return fp.read()
-    except (TypeError, UnicodeDecodeError):
-        #Shared object lib, not python code
-        return ""
-
-
-def is_builtin_module(path):
-    #Placeholder code
-    if 'site-packages' in path:
-        return True
-
-    if 'python3.' in path:
-        return True 
-    return False
-
-
-
-
-# def find_import_statements(path):
-#     with open(path) as fp:
-#         text = fp.readlines()
-
-#     modules = []
-#     for line in text:
-#         words = line.split()
-#         if words[0] == 'import':
-#             modname = words[1]
-
-#         if words[0] == 'from' and words[2] == 'import':
-#             if words[1] == '.':
-#                 #Do something 
-#                 pass 
-#             elif words[2] == '..':
-#                 #Do something
-#                 pass
-#             modname = ".".join([words[1], words[3]])
-#         modules.append(modname)
-#     return modules
 

@@ -1,4 +1,5 @@
 from frmbase.fixeddict import FixedDict
+from ipdb import set_trace as idebug
 import pytest
 
 def test_smoke():
@@ -13,7 +14,6 @@ def test_setting():
     d = FixedDict(data)
 
     d['a'] = 2011
-
     with pytest.raises(KeyError):
         d['aa'] = 2011
 

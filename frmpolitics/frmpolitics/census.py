@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from ipdb import set_trace as idebug
+import osgeo.osr as osr
 import pandas as pd
 import numpy as np
-
-
-import osgeo.osr as osr
-import frm.get_geom
 import requests
 import os
+
+
+import frmgis.get_geom as get_geom
 
 """
 Tools to query the US Census
@@ -392,7 +392,7 @@ class TigerQuery():
     def convert_zip_to_wgs84_df(self, zip_file, year):
 
         fips_alias = self.get_fips_alias_in_shapefile(year)
-        df = frm.get_geom.load_geoms_as_df(zip_file, fips_alias)
+        df = get_geom.load_geoms_as_df(zip_file, fips_alias)
 
         source = osr.SpatialReference()
         source.ImportFromEPSG(4269)  #NADS83

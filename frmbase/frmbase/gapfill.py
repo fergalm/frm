@@ -1,11 +1,6 @@
 
 from  ipdb import set_trace as idebug 
-<<<<<<< HEAD
-# import scipy.interpolate as spinterp
-=======
 import scipy.interpolate as spinterp
-import frmbase.plateau as plateau
->>>>>>> 5ee1c84d7978ca645397c8b2da15c3198628ebf9
 import numpy as np
 
 from frmbase.fitter.lsf import Lsf

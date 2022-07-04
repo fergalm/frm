@@ -74,6 +74,8 @@ def process_module(path, objs):
     for modname in sub_modules:
         mpath = get_path_to_module(modname)
         if mpath == "":
+            print(f"WARN: Importing {modname} from {path} failed.")
+            objs[modname] = False
             continue 
 
         #Recursively search that module
@@ -87,8 +89,8 @@ def get_path_to_module(modname):
         mpath = pkgutil.get_loader(modname)
         mpath = mpath.get_filename()
     except (AttributeError, ImportError) as e:
-        print(f"WARN: Importing {modname} from {path} failed with error {e}")
         return ""
+    return mpath    
 
 def find_module_names_in_file(path):
     """
@@ -97,8 +99,6 @@ def find_module_names_in_file(path):
 
         from . import foo
         from .. import foo
-
-    
     """
     modules = []
     text = get_text(path)

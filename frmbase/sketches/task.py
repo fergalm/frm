@@ -23,7 +23,32 @@ class ValidationError(Exception):
     pass 
 
 class Task():
+    """Base of a task class.
 
+    Any function you want to run in a pipeline should be wrapped in 
+    a Task object. For example::
+
+        def foo(data:):
+            return data 
+
+        class FooTask(Task):
+            #Overide this method with your function logic
+            #Type hints should always be used for this method definition
+            def func(self, data:np.ndarray) -> np.ndarray:  
+                return foo(data)
+
+    The Task class provides two useful features. 
+    1. It provides methods to access the type hint signature of `func()`
+       so that the pipeline can check if consecutive classes are 
+       compatible in terms of the types of the objects passed between them.
+       This enables a pipeline to check that its components are compatible
+       before the pipeline is run.
+
+    2. It checks that the actual values input and returns are consistent
+       with the type hints at run time. This ensures the logic honours the
+       promises made in the type hints.
+
+    """
     def __call__(self, *args):
         return self.run(*args)
 
@@ -72,9 +97,13 @@ class Task():
         if not isinstance(sig2, list):
             sig2 = [sig2]
 
+        msg = f"Task {self} expects {sig1} but task {task2} supplies {sig2}"
+        if len(sig1) != len(sig2):
+            print(msg)
+            return False
+
         for a, b in zip(sig1, sig2):
             if a != b:
-                msg = f"Task {self} expects {sig1} but task {task2} supplies {sig2}"
                 print(msg)
                 return False 
         return True 

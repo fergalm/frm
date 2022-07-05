@@ -19,9 +19,10 @@ def main():
     ::
         > eval envinit
 
-    """"
+    """
     cmds = build(sys.argv[1])
     print( "\n".join(cmds))
+
 
 def build(fn):
 

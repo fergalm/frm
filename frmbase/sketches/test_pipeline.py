@@ -1,18 +1,15 @@
-from ast import Assert
+from re import L
+from xml.dom import ValidationErr
 from ipdb import set_trace as idebug
-import matplotlib.pyplot as plt 
-from pprint import pprint 
+from typing import Any
 import pandas as pd
 import numpy as np
 
 import pytest
-import dags
 
-from typing import Any
-
-Task = dags.Task
-Pipeline = dags.Pipeline
-LinearPipeline = dags.LinearPipeline
+from pipeline import Pipeline, LinearPipeline
+from task import Task, ValidationError
+import task 
 
 class A(Task):
     def func(self) -> int:
@@ -54,6 +51,30 @@ def test_for_islands():
     ]
 
     pipeline = Pipeline(pipeline)
+
+
+def test_for_duplicate_labels():
+    pipeline = [
+        ('a', A()),
+        ('b', B(), 'a'),
+        ('a', C(), 'b')  #Note duplicate label 
+    ]
+
+    with pytest.raises(KeyError):
+        pipeline = Pipeline(pipeline)
+
+
+def test_for_validation_fail():
+    pipeline = [   #Dependencies in the wrong order.
+        ('a', A(), 'b'),
+        ('b', B(), 'c'),
+        ('c', C(), )
+    ]
+
+    pipeline = Pipeline(pipeline)
+    with pytest.raises(ValidationErr):
+        pipeline.validate()
+
 
 
 def test_linear_pipeline():

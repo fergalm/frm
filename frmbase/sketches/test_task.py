@@ -80,3 +80,17 @@ def test_validation_with_zero_args():
     t = NullTask()
     t.run()
 
+
+class Task1(Task):
+    def func(self) -> None:
+        return 
+
+class Task2(Task):
+    def func(self, a):
+        return a 
+
+def test_different_num_args():
+    t1 = Task1()
+    t2 = Task2()
+
+    assert not t2.can_depend_on(t1)

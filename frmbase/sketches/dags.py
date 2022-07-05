@@ -1,125 +1,9 @@
 from ipdb import set_trace as idebug
-import matplotlib.pyplot as plt 
-from pprint import pprint 
-import pandas as pd
-
 from frmbase.support import lmap
-from inspect import signature
+import matplotlib.pyplot as plt 
 import networkx as nx
 
-from typing import Any
-"""
-Every pipeline should be a task, in that it implements Pipeline.run()
-
-Every task should validate its inputs and outputs at run time
-Every task should implmeent validation at compile time.
-Every pipeline should validate too. 
-
-For validation to be useful, I must be able to validate columns
-(and optionally dtypes!) of dataframes, and for the presence
-of keys in dicts
-"""
-
-class ValidationError(Exception):
-    pass 
-
-class Task():
-
-    def __call__(self, *args):
-        return self.run(*args)
-
-    def get_input_signature(self):
-        annotation_list = [x.annotation for x in signature(self.func).parameters.values()]
-        return annotation_list        
-
-    def get_output_signature(self):
-        try:
-            return self.func.__annotations__['return']
-        except KeyError:
-            return Any
-        
-    def run(self, *args):
-        print("Running %s with args %s" %(self.name(), args)) 
-        self.validate_args(args, self.get_input_signature())
-        result = self.func(*args)
-        self.validate_args(result, self.get_output_signature())
-        return result 
-
-    def validate_args(self, actual, expected):
-        if not isinstance(actual, tuple):
-            actual = [actual]
-
-        if not isinstance(expected, list):
-            expected = [expected]
-
-        if len(actual) != len(expected):
-            raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
-
-        i = 0
-        for act, exp in zip(actual, expected):
-            if exp is Any:
-                continue 
-
-            if not isinstance(act, exp):
-                raise ValidationError(f"Argument {i}: Expected {exp}, found {act}")
-            i += 1
-
-    def can_depend_on(self, task2):
-        #I worry this is brittle
-        sig1 = self.get_input_signature()
-        sig2 = task2.get_output_signature()
-        if not isinstance(sig2, list):
-            sig2 = [sig2]
-
-        for a, b in zip(sig1, sig2):
-            if a != b:
-                msg = f"Task {self} expects {sig1} but task {task2} supplies {sig2}"
-                print(msg)
-                return False 
-        return True 
-        
-    def func(self, df: pd.DataFrame) -> str:
-        """Overwrite this function with task logic"""
-        return self.name()
-
-    def name(self):
-        name = str(self).split()[0][1:]
-        return name 
-
-class Extract1(Task):
-    __outputs__ = str
-
-class Extract2(Task):
-    __outputs__ = str
-    ... 
-
-class Transform1(Task):
-    __inputs__ = str
-    __outputs__ = str
-
-class Transform2(Task):
-    __inputs__ = str
-    __outputs__ = str
-
-class Merge(Task):
-    __inputs__ = (str, str)
-    __outputs__ = str
-
-class Submit(Task):
-    __inputs__ = str
-
-
-class DummyTask(Task):
-    """A dummy task returns its configuration.
-
-    This is useful when writing pipelines that jump started with some initial values
-    """
-    def __init__(self, *inputs):
-        self.inputs = inputs 
-
-    def func(self):
-        return self.inputs
-
+from task import Task, ValidationError
 
 class Pipeline(Task):
     """
@@ -162,21 +46,57 @@ class Pipeline(Task):
 
     def __init__(self, tasks):
         self.graph, self.task_dict = self.create_graph(tasks)
-
-        assert nx.is_directed_acyclic_graph(self.graph)
-        assert len(nx.connected_components(self.graph)) == 1, "Islands found in the graph"
+        self.verify_graph()
         self.tasklist = list(nx.topological_sort(self.graph))[::-1]
-        #print(list(self.tasklist))
+
+    def create_graph(self, tasklist):
+        labels = dict()
+        g = nx.DiGraph()
+
+        for row in tasklist:
+            label, func, deps = row[0], row[1], row[2:]
+
+            if label in labels:
+                raise KeyError(f"Two tasks with same label ({label}) found!")
+            
+            labels[label] = dict(func=func, reqs=row[2:])
+            g.add_node(label)
+            for d in deps:
+                g.add_edge(label, d)
+        return g, labels
+
+    def verify_graph(self):
+        assert nx.is_directed_acyclic_graph(self.graph)
+        assert nx.is_weakly_connected(self.graph), "Islands found in the graph"
+
+
+    def run(self, *inputs):
+        self.validate()
+
+        for i, label in enumerate(self.tasklist):
+            func = self.task_dict[label]['func']
+            reqs = self.task_dict[label]['reqs']
+
+            f = lambda x: self.task_dict[x]['result']
+            
+            if i != 0:
+                inputs = lmap(f, reqs)
+
+            result = func(*inputs)
+            self.task_dict[label]['result'] = result 
+            self.garbage_collect(label)
+            self.report_status()
+        return result
 
     def validate(self):
         tasklist = self.tasklist[::-1]
 
         val = True 
         for label in tasklist:
-            t0 = self.task_dict[label]
+            t0 = self.task_dict[label]['func']
             reqs = self.graph.successors(label)
             for r in reqs:
-                t1 = self.task_dict[r]
+                t1 = self.task_dict[r]['func']
                 val &= t0.can_depend_on(t1)
 
         if not val:
@@ -184,34 +104,15 @@ class Pipeline(Task):
 
     def get_input_signature(self):
         """See note on chaining pipelines"""
-        return self.tasklist[0].get_input_signature()
+        label = self.tasklist[0] 
+        func = self.task_dict[label]['func']
+        return func.get_input_signature()
 
     def get_output_signature(self):
         """See note on chaining pipelines"""
-        return self.tasklist[-1].get_output_signature()
-
-    def run(self):
-
-        #@TODO: Need to pass inputs to the first task
-        self.validate(*inputs)
-
-        #Add a dummy task to the task dict and to the task list
-        self.task_dict['__dummy_task__'] = dict(func=DummyTask(*inputs), reqs=[])
-        self.task_dict[ self.tasklist[0]]['reqs'] = ['__dummy_task__']
-        self.tasklist.insert( '__dummy_task__', 0)
-
-        for label in self.tasklist:
-            func = self.task_dict[label]['func']
-            reqs = self.task_dict[label]['reqs']
-
-            f = lambda x: self.task_dict[x]['result']
-            inputs = lmap(f, reqs)
-
-            result = func(*inputs)
-            self.task_dict[label]['result'] = result 
-            self.garbage_collect(label)
-            self.report_status()
-        return result
+        label = self.tasklist[-1] 
+        func = self.task_dict[label]['func']
+        return func.get_output_signature()
 
        
     def garbage_collect(self, label):
@@ -233,23 +134,6 @@ class Pipeline(Task):
                 return False 
         return True
 
-    def create_graph(self, tasklist):
-        labels = dict()
-        g = nx.DiGraph()
-
-        for i, row in enumerate(tasklist):
-            label = row[0]
-            func = row[1]
-            deps = row[2:]
-
-            if label in labels:
-                raise KeyError
-            
-            labels[label] = dict(func=func, reqs=row[2:])
-            g.add_node(label)
-            for d in deps:
-                g.add_edge(label, d)
-        return g, labels
 
     def report_status(self):
         charlist = []
@@ -270,7 +154,6 @@ class Pipeline(Task):
         plt.clf()
         g = nx.reverse(self.graph)
         pos = nx.planar_layout(nx.reverse(g))
-        # pos = graphviz_layout(self.graph, prog="dot")
         nx.draw(g, pos=pos, node_color='pink')
         nx.draw_networkx_labels(g, pos=pos)
 
@@ -344,20 +227,3 @@ class ForEachPipeline(Pipeline):
         output = map(self.pipeline.run, feed)
         return output
 
-def main():
-
-    graph = [
-        ('e1', Extract1()),
-        ('e2', Extract2()),
-        ('t1', Transform1(), 'e1'),
-        ('t2', Transform2(), 'e2'),
-        ('m1', Merge(), 't1', 't2'),
-        ('s1', Submit(), 'm1'),
-        ('s2', Submit(), 'm1'),
-
-    ]
-
-    pipeline = Pipeline(graph)
-    pipeline.draw_graph()
-    pipeline.validate()
-    df = pipeline.run()

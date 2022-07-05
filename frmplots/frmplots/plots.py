@@ -87,13 +87,24 @@ def annotate_histogram(vals, bins, **kwargs):
         (string) Horizontal alignment of text. Defaults to center.
     above=True
         (bool) Whether annotations should be above or below the point 
+    offset
+        (float) How far above (or below) top of line to place the label.
+        A value of 0 means no offsetting. A value of 1 offsets by the 
+        difference between the heights of the max and in bars.
+    jitter
+        (float) How much to offset adjacent labels in the y direction.
+        Prevents labels from over writing each other. Units the same
+        as `offset`
+
     All other arguments are passed to `plt.text`
 
     """
     #Define some default values
     fmt = kwargs.pop('fmt', '%g')
     ha = kwargs.pop('ha', 'center')
+    offset = kwargs.pop('offset', .02)
     offset_sign = 2* kwargs.pop('above', True) - 1
+    jitter = kwargs.pop('jitter', .04)
 
     va = kwargs.pop('va', None)
     if va is None:
@@ -107,7 +118,8 @@ def annotate_histogram(vals, bins, **kwargs):
     elif len(bins) == len(vals) + 1:
         locs = bins[:-1] + .5* np.diff(bins)
 
-    offset = offset_sign * .04 * (np.max(vals) - np.min(vals))
+    scale = np.max(vals) - np.min(vals)
+    offset = (.02 * scale * offset_sign) + jitter * scale
     sign = -1
     old = 0
     for xpos, val in zip(locs, vals):
@@ -272,8 +284,11 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
     object.
     """
     threshold = kwargs.pop('threshold', 10)
+    vmin = kwargs.pop('vmin', None)
+    vmax = kwargs.pop('vmax', None)
+    norm = kwargs.pop('norm', fnorm.DiscreteNorm(7, vmin, vmax))
     cmap = kwargs.pop('cmap', DEFAULT_CMAP)
-    norm = kwargs.pop('norm', fnorm.DiscreteNorm(7))
+
     ls = kwargs.pop('ls', "none")
     ls = kwargs.pop('linestyle', ls)
     marker = kwargs.pop('marker', 'o')

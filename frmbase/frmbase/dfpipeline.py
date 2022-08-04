@@ -150,6 +150,9 @@ class DropDuplicates(AbstractStep):
 
 class DropCol(AbstractStep):
     def __init__(self, *cols_to_remove):
+        if isinstance(cols_to_remove[0], list):
+            cols_to_remove = cols_to_remove[0]
+            
         self.cols = cols_to_remove
 
     def apply(self, df):
@@ -233,6 +236,17 @@ class Load(AbstractStep):
             json=pd.read_json,
         )
         return handers[filetype]
+
+class Pivot(AbstractStep):
+    def __init__(self, index, columns, values):
+        self.index = index
+        self.columns = columns 
+        self.values = values 
+
+    def apply(self, df):
+        df = df.pivot(index=self.index, columns=self.columns, values=self.values)
+        df = df.reset_index()
+        return df 
 
 
 class RenameCols(AbstractStep):

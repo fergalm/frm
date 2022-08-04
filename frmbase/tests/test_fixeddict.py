@@ -1,5 +1,6 @@
 from frmbase.fixeddict import FixedDict
 from ipdb import set_trace as idebug
+from pprint import pprint
 import pytest
 
 def test_smoke():
@@ -58,3 +59,37 @@ def test_hasatter():
 
     assert hasattr(d, 'keys')
     assert hasattr(d, 'a')
+
+
+from frmbase.parmap import parmap 
+
+def test_parallel():
+    """Fixed dict seems to fail when called in parallel
+    
+    This fails because a FixedDict needs to do control
+    how it is unpickled better. 
+    """
+    data = dict(a=1, b=2)
+    d = FixedDict(data)
+    keys = 'a b'.split()
+
+    res = parmap(_parallel, [d], keys, engine='serial')
+    assert all(res)
+    res = parmap(_parallel, [d], keys, engine='multi', timeout_sec=2)
+    assert all(res)
+
+
+def _parallel(d, key):
+    pprint(d.__dict__)
+    d[key] = 0
+    return True
+
+
+import pickle 
+def test_pickling():
+    data = dict(a=1, b=2)
+    d = FixedDict(data)
+
+    data = pickle.dumps(d)
+    print(data)
+    d_new = pickle.loads(data)

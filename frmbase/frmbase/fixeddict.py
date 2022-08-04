@@ -1,3 +1,5 @@
+from ipdb import set_trace as idebug
+from ipdb import set_trace as idebug
 
 class FixedDict(dict):
     """A dictionary that doesn't allow new keys to be  accidentlly added.
@@ -54,7 +56,20 @@ class FixedDict(dict):
         for k in kwargs:
             dict.__setitem__(self, k, kwargs[k])
 
+    # #Not working yet
+    # def __getstate__(self):
+    #     idebug()
+    #     state = self.__dict__.copy()
+    #     return state
+
+    # def __setstate__(self, state):
+    #     """Allows the object to be properly unpickled"""
+    #     idebug()
+    #     print("The state of you: %s" %(state))
+    #     self = state
+
     def __setitem__(self, key, value):
+
         if key not in self.keys():
             raise KeyError(f"Can't add new keys to this object ({key})")
         dict.__setitem__(self, key, value)

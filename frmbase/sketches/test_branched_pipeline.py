@@ -6,8 +6,8 @@ import numpy as np
 
 import pytest
 
-from pipeline import  LinearPipeline, BranchingPipeline
-from task import Task
+from stratos.pipeline import  LinearPipeline, BranchingPipeline
+from stratos.task import Task
 
 
 

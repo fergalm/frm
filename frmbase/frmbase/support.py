@@ -23,6 +23,7 @@ Timer()
 @author: fergal
 """
 
+from ipdb import set_trace as idebug
 from glob import glob
 import pandas as pd
 import numpy as np
@@ -122,9 +123,11 @@ def load_df_from_pattern(pattern, loader=None, **kwargs):
     --------
     pattern (str)
         A string that is globbed to find all appropriate files on disk
-    loader (func)
+    loader (func, or string)
         Function that loads individual files. Must return a dataframe.
         Eg pd.read_csv, pd.read_parquet, etc
+        If this is a string (eg csv), or None, function will try to guess the
+        correction loading function. 
 
     All optional inputs are passed to `loader`
 
@@ -134,12 +137,12 @@ def load_df_from_pattern(pattern, loader=None, **kwargs):
     """
     #Just because function exists, doesn't mean required packages
     #are installed
-    opts = dict(
-        csv=pd.read_csv,
-        parquet=pd.read_parquet,
-        json=pd.read_json,
-        xls=pd.read_excel,
-    )
+    opts = {
+        'csv': pd.read_csv,
+        'parquet': pd.read_parquet,
+        'json': pd.read_json,
+        'xls': pd.read_excel,
+    }
 
     flist = glob(pattern)
 
@@ -147,9 +150,15 @@ def load_df_from_pattern(pattern, loader=None, **kwargs):
         raise ValueError("No files found matching %s" %(pattern))
 
     #Choose a loading function
-    if loader is None:
-        ext = os.path.splitext(flist[0])[-1]
-        ext = ext[1:]  #Remove . at start
+    if not hasattr(loader, '__call__'):
+        if isinstance(loader, str):
+            ext = loader
+        elif loader is None:
+            ext = os.path.splitext(flist[0])[-1]
+            ext = ext[1:]  #Remove . at start
+        else:
+            raise ValueError("loader should be a string or a function")
+
         try:
             loader = opts[ext]
         except KeyError:

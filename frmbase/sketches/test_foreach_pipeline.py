@@ -6,8 +6,8 @@ import numpy as np
 
 import pytest
 
-from pipeline import  LinearPipeline, ForEachPipeline
-from task import Task
+from stratos.pipeline import  LinearPipeline, ForEachPipeline
+from stratos.task import Task
 
 
 class Create(Task):

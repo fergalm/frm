@@ -108,6 +108,9 @@ def fill_large_gaps(y, gaps, min_size):
 
 
 def fill_large_gaps_cubic(y, gaps, min_size):
+    if len(gaps) == 0:
+        return y
+        
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size > min_size]
     t = np.arange(len(y))
@@ -162,8 +165,16 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
     y0 = np.max([y1 - pad_size, 0])
     y3 = np.min([y2 + pad_size, len(y)])
 
-    left_anchor = y[y0:y1]
-    right_anchor = y[y2:y3]
+    if y1 > y0:
+        left_anchor = y[y0:y1]
+    else:
+        left_anchor = [y[y0]]
+
+    if y3 > y2:
+        right_anchor = y[y2:y3]
+    else:
+        right_anchor = y[y3-1]
+
     #TODO check for min length
     assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
     assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"

@@ -119,7 +119,7 @@ def annotate_histogram(vals, bins, **kwargs):
         locs = bins[:-1] + .5* np.diff(bins)
 
     scale = np.max(vals) - np.min(vals)
-    offset = (.02 * scale * offset_sign) + jitter * scale
+    offset = (offset * scale * offset_sign) + jitter * scale
     sign = -1
     old = 0
     for xpos, val in zip(locs, vals):

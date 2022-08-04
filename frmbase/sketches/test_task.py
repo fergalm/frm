@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 import pytest
-from  task import  Task, ValidationError
+from  stratos.task import  Task, ValidationError
 
 from typing import Any
 
@@ -26,6 +26,9 @@ class Count(Task):
     def func(self, value:int) -> tuple:
         return tuple(range(1, int+1))
 
+class Sum(Task):
+    def func(self, num1:int, num2:int) -> int:
+        return num1 + num2
 
 class NullTask(Task):
     def func(self) -> None:
@@ -73,6 +76,18 @@ def test_can_depend_on():
 
     assert t2.can_depend_on(t1)
     assert not t1.can_depend_on(t2)
+
+
+def test_can_depend_on_two():
+    """Task C depends on A and B. Test the code does this correctly"""
+    t1 = Length()
+    t2 = Length()
+    t3 = Sum()
+
+    assert t3.can_depend_on(t1, t2)
+
+    t4 = Count()
+    assert not t3.can_depend_on(t1, t4)
 
 
 

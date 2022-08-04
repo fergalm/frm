@@ -7,9 +7,9 @@ import numpy as np
 
 import pytest
 
-from pipeline import Pipeline, LinearPipeline
-from task import Task, ValidationError
-import task 
+from stratos.pipeline import Pipeline, LinearPipeline
+from stratos.task import Task, ValidationError
+import stratos.task  as task
 
 class A(Task):
     def func(self) -> int:
@@ -72,7 +72,7 @@ def test_for_validation_fail():
     ]
 
     pipeline = Pipeline(pipeline)
-    with pytest.raises(ValidationErr):
+    with pytest.raises(ValidationError):
         pipeline.validate()
 
 
@@ -92,6 +92,7 @@ def test_linear_pipeline():
 
 
 def test_diamond_pipeline():
+    """This is failing because task d validates against b1 and b2 seperately"""
     
     pipeline = [
         ('a', A()),

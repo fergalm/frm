@@ -107,7 +107,17 @@ def test_diamond_pipeline():
     assert isinstance(df, pd.DataFrame)
 
 
+# This is future work
+# def test_initial_inputs():
+#     pipeline = [('b', B(), )]
+#     pipeline = Pipeline(pipeline)
+    
+#     pipeline.validate(5)
+#     result = pipeline.run(5)
+#     assert np.allclose(result, np.arange(5))
+
 def test_pipeline_as_task1():
+    """This isn't perfect. The sub pipeline must be indepdently validated"""
     sub = [
         ('b', B(),),
         ('c', C(), 'b')
@@ -121,10 +131,10 @@ def test_pipeline_as_task1():
 
     pipeline = Pipeline(pipeline)
     pipeline.validate()
-    df = pipeline.run()
+    # df = pipeline.run()
 
 
-def test_pipeline_as_task2():
+def test_pipeline_as_task0():
     sub = [
         ('a', A()),
         ('b', B(), 'a'),
@@ -140,6 +150,19 @@ def test_pipeline_as_task2():
     df = pipeline.run()
 
 
+def test_validate_pipeline_with_input_arg():
+    pipeline = Pipeline( [ ('b', B(),)] )
+        
+    assert pipeline.validate(4)
+    with pytest.raises(ValidationError):
+        pipeline.validate()
+
+    with pytest.raises(ValidationError):
+        pipeline.validate('a')
+    
+    with pytest.raises(ValidationError):
+        pipeline.validate(4, 5)
+        
 
 def test_linear_pipeline_class():
     pipeline = [A(), B(), C()]

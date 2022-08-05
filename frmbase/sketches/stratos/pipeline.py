@@ -14,12 +14,14 @@ log.setLevel(frmbase.flogger.DEBUG)
 
 """
 Todo
-o BranchingPipeline is failing its tests 
-o Pipeline should be able to turn off garbage collection 
-o foreach pipeline should type check its sub-pipeline 
+x BranchingPipeline is failing its tests 
+x Pipeline should be able to turn off garbage collection 
+x Pipeline should check first task against input arguments
+o Pipeline validation should be recursive. 
 o Doc strings
 o A pipeline should provide methods to ensure it has a single starting/ending node
 o Check that objects, not classes are passed to Pipeline
+o Write out a graph tree after completion
 
 """
 class Pipeline(Task):
@@ -102,6 +104,13 @@ class Pipeline(Task):
         incompatible types before running the pipeline can dramatically
         reduce runtime.
 
+        Optional Inputs
+        ------------------
+        gc
+            (bool) Set to **False** to turn off garbage collection. This
+            preserves intermediate results for examination, but can
+            be very memory-expensive.
+
 
         Note on Chaining Pipelines
         ---------------------------
@@ -120,15 +129,15 @@ class Pipeline(Task):
            have one and only one internal task upon which every other
            task is dependent on. So a pipeline that looks like::
 
-            O-------O
-              |
-              |-----O
+            .        ---O
+            .       /
+            .    O-------O
 
-        can depend on a task, but a pipeline like this can not
+        can depend on a task, but a pipeline like this can not::
 
-            O----------O
-                  /
-            O----/
+            .    O----------O
+            .          /
+            .    O----/
 
         For this second graph, the task that is supposed to receive the
         input is ambiguous, and the results are undefined. This may
@@ -139,10 +148,11 @@ class Pipeline(Task):
            depends on. 
     """
 
-    def __init__(self, tasks):
+    def __init__(self, tasks, gc=True):
         self.graph, self.task_dict = self.create_graph(tasks)
         self.verify_graph()
         self.tasklist = list(nx.topological_sort(self.graph))[::-1]
+        self.gc = gc
 
     def create_graph(self, tasklist):
         labels = dict()
@@ -166,7 +176,7 @@ class Pipeline(Task):
 
 
     def run(self, *inputs):
-        self.validate()
+        self.validate(*inputs)
 
         for i, label in enumerate(self.tasklist):
             func = self.task_dict[label]['func']
@@ -179,32 +189,42 @@ class Pipeline(Task):
 
             result = func(*inputs)
             self.task_dict[label]['result'] = result 
-            self.garbage_collect(label)
+
+            if self.gc:
+                self.garbage_collect(label)
             self.report_status()
         return result
 
-    def validate(self):
+    def validate(self, *args):
         tasklist = self.tasklist[::-1]
 
         val = True 
-        for label in tasklist:
+        for label in tasklist[:-1]:
             t0 = self.task_dict[label]['func']
             reqs = self.graph.successors(label)
-            log.debug(f"Task {label}({t0})...")
-            log.debug(str(t0.get_input_signature()))
-            #TODO. I have to collect all req tasks, and pass a list of them
-            #into can_depend_on. can_depend_on has to accept a list
-            for r in reqs:
-                t1 = self.task_dict[r]['func']
-                log.debug(f"Comparing to {r}")
-                val &= t0.can_depend_on(t1)
-            
-            if val:
-                log.info(f"Task {label} validates")
 
-        if not val:
-            raise ValidationError("Validation failed")
+            req_tasks = lmap(lambda x: self.task_dict[x]['func'], reqs)
+            val = t0.can_depend_on(*req_tasks)
+            #t0.validate()  #Recursively validate? Need to think about this
 
+            if not val:
+                raise ValidationError("Validation failed")
+            log.info(f"Task {label} validates")
+
+        #Validate the first task against the input
+        label = tasklist[-1]
+        t0 = self.task_dict[label]['func']
+        input_sig = t0.get_input_signature()
+        if len(args) != len(input_sig):
+            raise ValidationError(f"Task {label} expects {input_sig}, but input is {args}")
+        
+        for a, b in zip(args, input_sig):
+            if not isinstance(a, b):
+                raise ValidationError(f"Task {label} expects object of type {b}, received {a}")
+
+        return True         
+
+    
     def get_input_signature(self):
         """See note on chaining pipelines"""
         label = self.tasklist[0] 
@@ -299,10 +319,9 @@ class BranchingPipeline(Pipeline):
 
         self.truePath = truePath 
         self.falsePath = falsePath  
-        self.validate()
 
-    def validate(self):
-        self.truePath.validate() and self.falsePath.validate()
+    def validate(self, *args):
+        self.truePath.validate(*args) and self.falsePath.validate(*args)
 
         sig1 = self.truePath.get_input_signature()
         sig2 = self.falsePath.get_input_signature()

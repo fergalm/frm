@@ -75,7 +75,8 @@ def test_can_depend_on():
     t2 = Count()
 
     assert t2.can_depend_on(t1)
-    assert not t1.can_depend_on(t2)
+    with pytest.raises(ValidationError):
+        t1.can_depend_on(t2)
 
 
 def test_can_depend_on_two():
@@ -87,7 +88,8 @@ def test_can_depend_on_two():
     assert t3.can_depend_on(t1, t2)
 
     t4 = Count()
-    assert not t3.can_depend_on(t1, t4)
+    with pytest.raises(ValidationError):
+        t3.can_depend_on(t1, t4)
 
 
 
@@ -108,4 +110,6 @@ def test_different_num_args():
     t1 = Task1()
     t2 = Task2()
 
-    assert not t2.can_depend_on(t1)
+    with pytest.raises(ValidationError):
+        t2.can_depend_on(t1)
+    

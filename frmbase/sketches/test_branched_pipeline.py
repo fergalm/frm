@@ -47,12 +47,12 @@ def test1():
 
 
     pipeline = BranchingPipeline(p1, p2, yes)
-    pipeline.validate()
+    pipeline.validate(True)
     result = pipeline.run(True)
     assert result == 6
 
     pipeline = BranchingPipeline(p1, p2, no)
-    pipeline.validate()
+    pipeline.validate(True)
     result = pipeline.run(False)
     assert result == 28
 

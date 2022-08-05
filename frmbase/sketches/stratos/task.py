@@ -70,6 +70,9 @@ class Task():
         self.validate_args(result, self.get_output_signature())
         return result 
 
+    def validate(self):
+        return True 
+
     def validate_args(self, actual, expected):
         if not isinstance(actual, tuple):
             actual = [actual]
@@ -104,14 +107,12 @@ class Task():
 
         msg = f"Task\n  {self}\n  expects\n  {sig1}\n  but input tasks\n  {args}\n  supplies\n  {sig2}"
         if len(sig1) != len(sig2):
-            print(msg)
-            return False
+            raise ValidationError(msg)
 
         for a, b in zip(sig1, sig2):
             # idebug()
             if a != b:
-                print(msg)
-                return False 
+                raise ValidationError(msg)
         return True 
         
     def func(self, df: pd.DataFrame) -> str:

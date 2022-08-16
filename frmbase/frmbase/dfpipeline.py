@@ -262,6 +262,30 @@ class ResetIndex(AbstractStep):
         return df.reset_index(drop=True)
 
 
+class RoundDate(AbstractStep):
+    """ Round a date down to a coarser value,
+    e.g, "2011-09-21 15:30" --> 2011-09-21
+    """
+    def __init__(self, delta, col='date'):
+        """
+        Inputs
+        ------
+        delta
+            (str or pd.DatetimeOffset) eg. '1H' to truncate to nearest hour,
+            '1D' to truncate to nearest day
+
+        col
+            (str) Name of column to apply truncation to.
+        """
+        
+        self.delta = delta 
+        self.col = col 
+
+    def apply(self, df):
+        df[self.col] = df[self.col].dt.round(self.delta)
+        return df 
+
+
 class SelectCols(AbstractStep):
     def __init__(self, *cols_to_keep):
         if len(cols_to_keep) == 1 and not isinstance(cols_to_keep[0], str):

@@ -112,8 +112,8 @@ def int_to_bin_str(arr):
         return np.array(vals)
 
 
-
-def load_df_from_pattern(pattern, loader=None, **kwargs):
+from typing import Union, Optional, Callable
+def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, **kwargs) -> pd.DataFrame:
     """Load a set of files whose paths match pattern
 
     This only works for local files. Results are 

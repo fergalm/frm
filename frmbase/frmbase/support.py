@@ -42,6 +42,30 @@ if 'HOME' not in os.environ:
         pass 
 
 
+
+def check_cols_in_df(df, cols):
+    """Because I always get this wrong"""
+    return check_columns_in_df(df, cols)
+
+def check_columns_in_df(df, cols):
+    """Check that every element of cols in a column in the dataframe
+
+    Inputs
+    --------
+    df
+        A dataframe
+    cols
+        (list or iterable) Columns you expect in dataframe
+
+
+    Returns
+    -------
+    **True** if all `cols` are columns in dataframes
+    """
+    return len(set(cols) - set(df.columns)) <= 0
+
+
+
 def count_duplicates(data):
     """Count the number of each occurence of an element in a list
 
@@ -112,6 +136,11 @@ def int_to_bin_str(arr):
         return np.array(vals)
 
 
+def is_evenly_spaced(y):
+    diff = np.diff(y)
+    return np.all(diff == diff[0])
+
+    
 from typing import Union, Optional, Callable
 def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, **kwargs) -> pd.DataFrame:
     """Load a set of files whose paths match pattern
@@ -382,35 +411,5 @@ def timer(func):
              return func(*args, **kwargs)
 
     return wrapperForFunc
-
-
-
-def check_cols_in_df(df, cols):
-    """Because I always get this wrong"""
-    return check_columns_in_df(df, cols)
-
-def check_columns_in_df(df, cols):
-    """Check that every element of cols in a column in the dataframe
-
-    Inputs
-    --------
-    df
-        A dataframe
-    cols
-        (list or iterable) Columns you expect in dataframe
-
-
-    Returns
-    -------
-    **True** if all `cols` are columns in dataframes
-    """
-    return len(set(cols) - set(df.columns)) <= 0
-
-
-
-
-
-
-
 
 

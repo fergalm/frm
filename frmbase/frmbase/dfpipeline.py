@@ -1,3 +1,4 @@
+from tokenize import Number
 from ipdb import set_trace as idebug
 import pandas as pd
 import numpy as np
@@ -149,14 +150,22 @@ class DropDuplicates(AbstractStep):
 
 
 class DropCol(AbstractStep):
-    def __init__(self, *cols_to_remove):
+    def __init__(self, *cols_to_remove, halt_on_missing=True):
         if isinstance(cols_to_remove[0], list):
             cols_to_remove = cols_to_remove[0]
             
         self.cols = cols_to_remove
+        self.halt_on_missing = halt_on_missing
 
     def apply(self, df):
-        return df.drop(list(self.cols), axis=1)
+        #If halt_on_missing is False, silently ignore cases where
+        #the column we want to drop doesn't exist.
+        #Implemented by culling requested cols to only those that exist in df
+        cols = self.cols
+        if self.halt_on_missing is False:
+            cols = set(cols) & set(df.columns)
+
+        return df.drop(list(cols), axis=1)
 
 
 class Filter(AbstractStep):
@@ -258,13 +267,16 @@ class RenameCols(AbstractStep):
 
 
 class ResetIndex(AbstractStep):
+    def __init__(self, drop=True):
+        self.drop = drop
+
     def apply(self, df):
-        return df.reset_index(drop=True)
+        return df.reset_index(drop=self.drop)
 
 
 class RoundDate(AbstractStep):
     """ Round a date down to a coarser value,
-    e.g, "2011-09-21 15:30" --> 2011-09-21
+    e.g, "2011-09-21 19:30" --> 2011-09-21
     """
     def __init__(self, delta, col='date'):
         """
@@ -272,7 +284,8 @@ class RoundDate(AbstractStep):
         ------
         delta
             (str or pd.DatetimeOffset) eg. '1H' to truncate to nearest hour,
-            '1D' to truncate to nearest day
+            'D' to truncate to nearest day. Note rounding to nearest 2nd day
+            by `delta='2D'` doesn't work yet.
 
         col
             (str) Name of column to apply truncation to.
@@ -282,7 +295,8 @@ class RoundDate(AbstractStep):
         self.col = col 
 
     def apply(self, df):
-        df[self.col] = df[self.col].dt.round(self.delta)
+        #df[self.col] = df[self.col].dt.floor(self.delta)
+        df[self.col] = df[self.col].dt.to_period(self.delta).dt.start_time
         return df 
 
 
@@ -310,6 +324,9 @@ class SetCol(AbstractStep):
     """
 
     def __init__(self, col, predicate, replace=True):
+
+        if isinstance(predicate, (int, float)):
+            predicate = str(predicate)
         self.predicate = predicate
         self.col = col
         self.replace = replace

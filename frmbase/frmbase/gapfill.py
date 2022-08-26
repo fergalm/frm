@@ -44,6 +44,14 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
     1. Gaps are identifed as sequences in y where the values are equal to `bad_value`
     2. Small gaps (less than small_size) are replaced by the average of nearby points.
     3. Large gaps are infilled with a spline interpolation across the gaps. 
+
+
+    Returns
+    ----------
+    y
+        (1d np array) Original array with gaps filled 
+    idx
+        (1d np array bool) True if that element is interpolated
     """
     y = y.copy()
 
@@ -113,16 +121,14 @@ def fill_large_gaps_cubic(y, gaps, min_size):
         
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size > min_size]
-    t = np.arange(len(y))
-
     y_out = y.copy()
     for g in gaps:
         pad_size = int( (g[1] - g[0]))
-        y = fill_single_large_gap_cubic(y, g[0], g[1], pad_size)
-        y_out[ g[0]:g[1] ] = y #fill the gap
+        y_tmp = fill_single_large_gap_cubic(y, g[0], g[1], pad_size)
+        y_out[ g[0]:g[1] ] = y_tmp #fill the gap
 
         #TODO Add noise?
-    return y
+    return y_out
 
 
 def fill_single_large_gap_cubic(y, y1, y2, pad_size):
@@ -175,9 +181,11 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
     else:
         right_anchor = y[y3-1]
 
+    # assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
+    # assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"
+    left_anchor = left_anchor[ np.isfinite(left_anchor)]
+    right_anchor = right_anchor[ np.isfinite(right_anchor)]
     #TODO check for min length
-    assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
-    assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"
 
     ys, ms = get_params_of_anchor_section(left_anchor, left=True, dx=y0)
     ye, me = get_params_of_anchor_section(right_anchor, left=False, dx=y2)
@@ -195,6 +203,7 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
 
     x = np.arange(size)
     y = (((a * x) + b) * x + c) * x + d
+    assert np.all(np.isfinite(y))
     return y 
 
     

@@ -57,6 +57,10 @@ def find_peaks(y: np.ndarray) -> np.ndarray:
     Note, by this definition of a peak, the zeroth element of an array
     can't be a peak, neither can the last.
 
+    Note: If searching for peaks in noisy data, apply some smoothing first
+    to prevent every second point being declared a peak
+
+
     Inputs
     ----------
     y

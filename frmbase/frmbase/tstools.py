@@ -51,6 +51,35 @@ def mad(y):
     return np.median(np.fabs(y))
 
 
+def find_peaks(y: np.ndarray) -> np.ndarray:
+    """Find values in y that are larger than values immediately before or after
+
+    Note, by this definition of a peak, the zeroth element of an array
+    can't be a peak, neither can the last.
+
+    Inputs
+    ----------
+    y
+        Data to search 
+    
+    Returns
+    ----------
+    A 1d boolean array of length `len(y)`. Values are **True** if that
+    index corresponds to a peak
+    """
+
+
+    diff = np.diff(y, axis=0)
+    idx = (diff >= 0) & (np.roll(diff, -1, axis=0) < 0)
+
+    #If y[0] > y[-1], y[-1] will be set to True, even though
+    #it's not a peak by our defintion. We force the last element to False here,
+    #and pad the array with a leading zero to ensure the corrent length
+    idx = np.concatenate( [[False], idx[:-1], [False]])
+    assert len(idx) == len(y)
+    return idx 
+
+
 def sigma_clip(y, nSigma, maxIter=1e4, initialClip=None):
     """Iteratively find and remove outliers
     Find outliers by identifiny all points more than **nSigma** from

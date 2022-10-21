@@ -181,8 +181,6 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
     else:
         right_anchor = y[y3-1]
 
-    # assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
-    # assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"
     left_anchor = left_anchor[ np.isfinite(left_anchor)]
     right_anchor = right_anchor[ np.isfinite(right_anchor)]
     #TODO check for min length
@@ -195,6 +193,7 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
     dy = ye - ys 
     dm = me - ms 
     size = y2 - y1
+    assert size > 3, "Not enough points in anchors to do fit"
 
     Amat = np.array([size**3, size**2, 3*size**2, 2*size]).reshape((2,2))
     bVec = np.array([dy - ms*size, dm]).reshape((2,1))

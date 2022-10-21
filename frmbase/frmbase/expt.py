@@ -77,13 +77,14 @@ def remove_old_expt(expt_name):
     shutil.rmtree(expt_name)
 
 
-def move_new_files_by_existence(before, expt_name):
-    after = set(glob("*"))
-    new_files = after - before
-    os.mkdir(expt_name)
+# def move_new_files_by_existence(before, expt_name):
+#     after = set(glob("*"))
+#     new_files = after - before
+#     new_files = filter(lambda x: x[-2:] == "py", new_files)  #Ignore py files
+#     os.mkdir(expt_name)
 
-    for f in new_files:
-        os.rename(f, os.path.join(expt_name, f))
+#     for f in new_files:
+#         os.rename(f, os.path.join(expt_name, f))
 
 
 # def _move_new_files_by_modification_time(expt_name, start_time):
@@ -93,6 +94,7 @@ def move_new_files(expt_name, start_time):
     This code isn't tested, and probably shouldn't be used yet.
     """
     files = set(glob("*"))
+    files = filter(lambda x: x[-2:] != "py", files)  #Ignore py files
     os.mkdir(expt_name)
 
     for f in files:

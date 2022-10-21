@@ -4,7 +4,7 @@ Created on Fri Dec  2 10:06:27 2016
 @author: fergal
 """
 
-from frm.fitter.AbstractFitter import AbstractFitter
+from frmbase.fitter.AbstractFitter import AbstractFitter
 import numpy as np
 
 def nlPoly(x, order, param, **kwargs):

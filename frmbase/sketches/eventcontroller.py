@@ -22,8 +22,8 @@ def controller():
         
 def loadHandlers():
     out = {
-        LoggingEvent: handle_logging_event
-        OutOfMemoryEvent: handle_oom
+        LoggingEvent: handle_logging_event,
+        OutOfMemoryEvent: handle_oom,
         OutOfSpaceEvent: handle_oos
     }
     return out

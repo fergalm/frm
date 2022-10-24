@@ -10,7 +10,7 @@ def controller():
     
     while True:
         while len(eventList) > 0:
-            event = eventList.pop()
+            event = eventList.pop(0)
 
             handler = handler_dict.get(event, handle_unknown_event)
             new_events = handler(event)

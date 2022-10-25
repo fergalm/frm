@@ -24,9 +24,9 @@ def main():
         script = sys.argv[1]
     else:
         script = find_config_script()
-    cmds = build(script)
     
-    print( "\n".join(cmds))
+    with open(script) as fp:
+        print(fp.read())
 
 
 def find_config_script(path=None):
@@ -46,78 +46,6 @@ def find_config_script(path=None):
             return trial_path 
     
     raise IOError(f"No file setup.src found in directory tree above {path}")
-
-
-def build(fn):
-
-    funcs = {
-        'import': import_func,
-        'append': append_func,
-        'conda': conda_func,
-        'unset': unset_func,
-        'set': set_func,
-        'cmd': cmd_func,
-        '#': ignore_comment,
-    }
-
-    with open(fn) as fp:
-        text = fp.readlines()
-
-    output = []
-    for line in text:
-        words = line.split()
-        
-        if words[0][0] == '#':
-            words[0] = '#'
-        
-        try:
-            func = funcs[words[0]]
-        except IndexError:
-            #Blank line
-            continue 
-        except KeyError:
-            raise KeyError(f"Command {words[0]} not understood")
-
-        output.extend(func(words))
-    return output
-
-def unset_func(words):
-    write_me()
-
-def set_func(words):
-    #I can't remember what I wanted this func to do
-    write_me()
-    
-def cmd_func(words):
-    return [" ".join(words[1:])]
-#Write a decorator to ensure outputs are always lists
-#@checkoutputs
-def import_func(words):
-    srcfile = words[1]
-
-    if os.path.exists(srcfile):
-        return build(srcfile)
-    else:
-        raise IOError(f"Src file {srcfile} not found")
-
-def conda_func(words):
-    return [" ".join(words)]
-
-def append_func(words):
-    var = words[1]
-    vals = words[2:]
-    
-    out = []
-    for v in vals:
-        out.append(f"export {var}=${var}:{v}")
-    return out 
-
-#@checkoutputs
-def ignore_comment(words):
-    return []
-
-def write_me(words):
-    raise ValueError(f"{words[0]} is a legal command that is not yet implemented")
 
 
 if __name__ == "__main__":

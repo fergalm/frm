@@ -16,9 +16,11 @@ How to have dates on the colour bar axis
 
 """
 
+
 import matplotlib.collections as mcollect
 from matplotlib.gridspec import GridSpec
 import matplotlib.patheffects as meffect
+import matplotlib.transforms as mtrans
 import matplotlib.colors as mcolors
 import matplotlib.ticker as mticker
 import matplotlib.dates as mdates
@@ -336,6 +338,16 @@ def load_figfile(filename):
     with open(filename, 'rb') as fp:
         fig = pickle.load(fp)
     return fig
+
+
+def mark_indices(x_data, y_axis, *args, **kwargs):
+    """Place points with x-position referenced to data, but y-coords
+    references to axis coords. This provides a kind of heads-up-display
+    for when a binary event occurs (e.g a flag being raised on bad data)
+    """
+    ax = plt.gca()
+    trans = mtrans.blended_transform_factory(ax.transData, ax.transAxes)
+    return ax.plot(x_data, y_axis, *args, transform=trans, **kwargs)
 
 
 

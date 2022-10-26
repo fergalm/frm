@@ -1,6 +1,7 @@
 
 from  ipdb import set_trace as idebug 
 import matplotlib.pyplot as plt
+import numpy as np
 import re
 
 
@@ -42,6 +43,20 @@ class PlotWheel(object):
                 print("Already at start")
                 return 
             self.index -= 1
+        elif request == 'N':
+            if self.index == self.index_max - 1:
+                print("Already at end")
+                return
+            step = min(10, self.index_max - self.index - 1)
+            self.index += step
+        elif request == 'B':
+            if self.index == 0:
+                print("Already at start")
+                return
+            step = min(10, self.index)
+            self.index -= step
+        elif request == 'r':
+            self.index = int(self.index_max * np.random.rand())
         elif request == 'S':
             fn = self.get_savefile_name(self.index)
             plt.savefig(fn)

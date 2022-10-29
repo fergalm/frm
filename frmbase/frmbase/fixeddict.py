@@ -58,13 +58,13 @@ class FixedDict(dict):
 
     # #Not working yet
     # def __getstate__(self):
-    #     idebug()
+    #     # idebug()
     #     state = self.__dict__.copy()
     #     return state
-
+    #
     # def __setstate__(self, state):
     #     """Allows the object to be properly unpickled"""
-    #     idebug()
+    #     # idebug()
     #     print("The state of you: %s" %(state))
     #     self = state
 

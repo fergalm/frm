@@ -44,6 +44,14 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
     1. Gaps are identifed as sequences in y where the values are equal to `bad_value`
     2. Small gaps (less than small_size) are replaced by the average of nearby points.
     3. Large gaps are infilled with a spline interpolation across the gaps. 
+
+
+    Returns
+    ----------
+    y
+        (1d np array) Original array with gaps filled 
+    idx
+        (1d np array bool) True if that element is interpolated
     """
     y = y.copy()
 
@@ -52,12 +60,41 @@ def fill_gaps(y, small_size=5, bad_value=np.nan):
     else:
         idx = np.isnan(y)
 
+    y = fix_ends(y, idx)
+
     gaps = plateau.plateau(idx.astype(float), .5)
+    if len(gaps) == 0:
+        return y, idx
+
     y = fill_small_gaps(y, gaps, small_size)
     y = fill_large_gaps_cubic(y, gaps, small_size)
 
     idx = plateau.convert_plateau_to_index(gaps, len(y))
     return y, idx
+
+
+def fix_ends(y, idx):
+    """Back fill a gap at the start of the array with the first good value.
+    
+    Forward fill a gap at the end of the array with the last good value
+    """
+    #Back fill empty first elts
+    gaps = plateau.plateau(idx.astype(float), .5)
+    if len(gaps) == 0:
+        return y
+
+    if gaps[0,0] == 0:
+        first = gaps[0,1] +1
+        fill_val = y[first]
+        y[:first] = fill_val
+    
+    #Forward fill empty last elts 
+    if gaps[-1, 1] == len(y):
+        last = gaps[-1, 0] - 1
+        fill_val = y[last]
+        y[last:] = fill_val
+    return y
+
 
 def fill_small_gaps(y, gaps, max_size):
     if len(gaps) == 0:  #No gaps to fill
@@ -113,16 +150,14 @@ def fill_large_gaps_cubic(y, gaps, min_size):
         
     gap_size = gaps[:,1] - gaps[:,0]
     gaps = gaps[gap_size > min_size]
-    t = np.arange(len(y))
-
     y_out = y.copy()
     for g in gaps:
         pad_size = int( (g[1] - g[0]))
-        y = fill_single_large_gap_cubic(y, g[0], g[1], pad_size)
-        y_out[ g[0]:g[1] ] = y #fill the gap
+        y_tmp = fill_single_large_gap_cubic(y, g[0], g[1], pad_size)
+        y_out[ g[0]:g[1] ] = y_tmp #fill the gap
 
         #TODO Add noise?
-    return y
+    return y_out
 
 
 def fill_single_large_gap_cubic(y, y1, y2, pad_size):
@@ -164,29 +199,39 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
     #Order of indices: 0..left..start (gap) end ..right...
     y0 = np.max([y1 - pad_size, 0])
     y3 = np.min([y2 + pad_size, len(y)])
+    
+    #import ipdb; ipdb.set_trace()
+    #if y1 > y0:
+        #left_anchor = y[y0:y1]
+    #else:
+        #left_anchor = [y[y0]]
 
-    if y1 > y0:
-        left_anchor = y[y0:y1]
-    else:
-        left_anchor = [y[y0]]
+    #if y3 > y2:
+        #right_anchor = y[y2:y3]
+    #else:
+        #right_anchor = y[y3-1]
 
-    if y3 > y2:
-        right_anchor = y[y2:y3]
-    else:
-        right_anchor = y[y3-1]
-
-    #TODO check for min length
-    assert np.all(np.isfinite(left_anchor)), "Nan found before gap!"
-    assert np.all(np.isfinite(right_anchor)), "Nan found after gap!"
-
-    ys, ms = get_params_of_anchor_section(left_anchor, left=True, dx=y0)
-    ye, me = get_params_of_anchor_section(right_anchor, left=False, dx=y2)
+    if y0 == y1 or y2 == y3:
+        #One of our anchor points is at the end of the array
+        #Not 100% sure of this what happens if first data point is good?
+        return y[y1:y2]
+    
+    left_anchor = y[y0:y1]
+    left_anchor = left_anchor[ np.isfinite(left_anchor)]
+    
+    right_anchor = y[y2:y3]
+    right_anchor = right_anchor[ np.isfinite(right_anchor)]
+    
+        
+    ys, ms = get_params_of_anchor_section(left_anchor, left=True)
+    ye, me = get_params_of_anchor_section(right_anchor, left=False)
 
     c = ms
     d = ys 
     dy = ye - ys 
     dm = me - ms 
     size = y2 - y1
+    assert size > 3, "Not enough points in anchors to do fit"
 
     Amat = np.array([size**3, size**2, 3*size**2, 2*size]).reshape((2,2))
     bVec = np.array([dy - ms*size, dm]).reshape((2,1))
@@ -195,15 +240,16 @@ def fill_single_large_gap_cubic(y, y1, y2, pad_size):
 
     x = np.arange(size)
     y = (((a * x) + b) * x + c) * x + d
+    assert np.all(np.isfinite(y))
     return y 
 
     
-def get_params_of_anchor_section(y, left=True, dx=0):
+def get_params_of_anchor_section(y, left=True):
     #TODO Robust fit?
     x = np.arange(len(y))
     fobj = Lsf(x, y, 1, 4)
+    
     pars = fobj.getParams()
-
     d, c, b, a = pars
 
     if left:

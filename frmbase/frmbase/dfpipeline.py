@@ -1,7 +1,12 @@
+from tokenize import Number
 from ipdb import set_trace as idebug
 import pandas as pd
 import numpy as np
+
+from glob import glob
+import warnings
 import re
+import os
 
 """
 Dataframe pipeline is a way to construct a sequence of operations that
@@ -149,14 +154,22 @@ class DropDuplicates(AbstractStep):
 
 
 class DropCol(AbstractStep):
-    def __init__(self, *cols_to_remove):
+    def __init__(self, *cols_to_remove, halt_on_missing=True):
         if isinstance(cols_to_remove[0], list):
             cols_to_remove = cols_to_remove[0]
             
         self.cols = cols_to_remove
+        self.halt_on_missing = halt_on_missing
 
     def apply(self, df):
-        return df.drop(list(self.cols), axis=1)
+        #If halt_on_missing is False, silently ignore cases where
+        #the column we want to drop doesn't exist.
+        #Implemented by culling requested cols to only those that exist in df
+        cols = self.cols
+        if self.halt_on_missing is False:
+            cols = set(cols) & set(df.columns)
+
+        return df.drop(list(cols), axis=1)
 
 
 class Filter(AbstractStep):
@@ -188,7 +201,7 @@ class GroupApply(AbstractStep):
 
     def apply(self, df):
         gr = df.groupby(self.col)
-        return gr.apply(self.func, *self.args, **self.kwargs).reset_index(drop=True)
+        return gr.apply(self.func, *self.args, **self.kwargs).reset_index()
 
 
 class GroupBy(AbstractStep):
@@ -219,15 +232,84 @@ class GroupFilter(AbstractStep):
 
 
 class Load(AbstractStep):
-    def __init__(self, fn):
-        self.fn = fn
+    """Load a set of files whose paths match pattern
+
+    This only works for local files. Results are
+    stored in a dataframe
+
+    This should be perfectly compatible with the old Load task.
+    Just in case, I keep a commented version of the old task below
+    Inputs
+    --------
+    pattern (str)
+        A string that is globbed to find all appropriate files on disk
+    loader (func, or string)
+        Function that loads individual files. Must return a dataframe.
+        Eg pd.read_csv, pd.read_parquet, etc
+        If this is a string (eg csv), or None, function will try to guess the
+        corrected loading function.
+    add_src
+        If True, name of inputfile is added to each dataframe
+
+    All optional inputs are passed to `loader`
+
+    Returns
+    ----------
+    A Pandas dataframe
+    """
+
+    def __init__(self, pattern, loader=None, add_src=True, **kwargs):
+        """
+        """
+        self.pattern = pattern
+        self.loader = loader
+        self.add_src = kwargs.pop('source', False)
+        self.kwargs = kwargs
+        self.opts = {
+            'csv': pd.read_csv,
+            'parquet': pd.read_parquet,
+            'json': pd.read_json,
+            'xls': pd.read_excel,
+        }
 
     def apply(self, df=None):
-        filetype = self.fn.split(".")[-1]
+        flist = self.get_filelist(self.pattern)
+        loader = self.get_loader(self.loader, flist)
 
-        # Todo, better error checking
-        func = self.get_handler(filetype)
-        return func(self.fn)
+        def load(fn):
+            try:
+                df = loader(fn, **self.kwargs)
+            except Exception as e:
+                raise IOError("Error parsing %s. %s" % (fn, e)) from e
+
+            if self.add_src:
+                df['_source'] = fn
+            return df
+
+        dflist = list(map(load, flist))
+        return pd.concat(dflist)
+
+    def get_filelist(self, pattern):
+        flist = glob(pattern)
+        if len(flist) == 0:
+            raise ValueError("No files found matching %s" % (pattern))
+        return flist
+
+    def get_loader(self, loader, flist):
+        if not hasattr(loader, '__call__'):
+            if isinstance(loader, str):
+                ext = loader
+            elif loader is None:
+                ext = os.path.splitext(flist[0])[-1]
+                ext = ext[1:]  # Remove . at start
+            else:
+                raise ValueError("loader should be a string or a function")
+
+            try:
+                loader = self.opts[ext]
+            except KeyError:
+                raise ValueError("Unrecognised file type %s" % (ext))
+        return loader
 
     def get_handler(self, filetype):
         handers = dict(
@@ -236,6 +318,29 @@ class Load(AbstractStep):
             json=pd.read_json,
         )
         return handers[filetype]
+
+
+
+# class Load(AbstractStep):
+#     """Deprecate, then replace wtih LoadGlob"""
+#     def __init__(self, fn):
+#         self.fn = fn
+#
+#     def apply(self, df=None):
+#         filetype = self.fn.split(".")[-1]
+#
+#         # Todo, better error checking
+#         func = self.get_handler(filetype)
+#         return func(self.fn)
+#
+#     def get_handler(self, filetype):
+#         handers = dict(
+#             csv=lambda x: pd.read_csv(x, index_col=0),
+#             parquet=pd.read_parquet,
+#             json=pd.read_json,
+#         )
+#         return handers[filetype]
+
 
 class Pivot(AbstractStep):
     def __init__(self, index, columns, values):
@@ -249,7 +354,7 @@ class Pivot(AbstractStep):
         return df 
 
 
-class RenameCols(AbstractStep):
+class RenameCol(AbstractStep):
     def __init__(self, mapper):
         self.mapper = mapper
 
@@ -258,11 +363,40 @@ class RenameCols(AbstractStep):
 
 
 class ResetIndex(AbstractStep):
+    def __init__(self, drop=True):
+        self.drop = drop
+
     def apply(self, df):
-        return df.reset_index(drop=True)
+        return df.reset_index(drop=self.drop)
 
 
-class SelectCols(AbstractStep):
+class RoundDate(AbstractStep):
+    """ Round a date down to a coarser value,
+    e.g, "2011-09-21 19:30" --> 2011-09-21
+    """
+    def __init__(self, delta, col='date'):
+        """
+        Inputs
+        ------
+        delta
+            (str or pd.DatetimeOffset) eg. '1H' to truncate to nearest hour,
+            'D' to truncate to nearest day. Note rounding to nearest 2nd day
+            by `delta='2D'` doesn't work yet.
+
+        col
+            (str) Name of column to apply truncation to.
+        """
+        
+        self.delta = delta 
+        self.col = col 
+
+    def apply(self, df):
+        #df[self.col] = df[self.col].dt.floor(self.delta)
+        df[self.col] = df[self.col].dt.to_period(self.delta).dt.start_time
+        return df 
+
+
+class SelectCol(AbstractStep):
     def __init__(self, *cols_to_keep):
         if len(cols_to_keep) == 1 and not isinstance(cols_to_keep[0], str):
             cols_to_keep = cols_to_keep[0]  #We were given a single list
@@ -286,6 +420,9 @@ class SetCol(AbstractStep):
     """
 
     def __init__(self, col, predicate, replace=True):
+
+        if isinstance(predicate, (int, float)):
+            predicate = str(predicate)
         self.predicate = predicate
         self.col = col
         self.replace = replace

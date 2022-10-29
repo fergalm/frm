@@ -42,6 +42,30 @@ if 'HOME' not in os.environ:
         pass 
 
 
+
+def check_cols_in_df(df: pd.DataFrame, cols: list) -> bool:
+    """Because I always get this wrong"""
+    return check_columns_in_df(df, cols)
+
+def check_columns_in_df(df: pd.DataFrame, cols: list) -> bool:
+    """Check that every element of cols in a column in the dataframe
+
+    Inputs
+    --------
+    df
+        A dataframe
+    cols
+        (list or iterable) Columns you expect in dataframe
+
+
+    Returns
+    -------
+    **True** if all `cols` are columns in dataframes
+    """
+    return len(set(cols) - set(df.columns)) <= 0
+
+
+
 def count_duplicates(data):
     """Count the number of each occurence of an element in a list
 
@@ -112,8 +136,13 @@ def int_to_bin_str(arr):
         return np.array(vals)
 
 
+def is_evenly_spaced(y):
+    diff = np.diff(y)
+    return np.all(diff == diff[0])
 
-def load_df_from_pattern(pattern, loader=None, **kwargs):
+    
+from typing import Union, Optional, Callable
+def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, **kwargs) -> pd.DataFrame:
     """Load a set of files whose paths match pattern
 
     This only works for local files. Results are 
@@ -144,6 +173,7 @@ def load_df_from_pattern(pattern, loader=None, **kwargs):
         'xls': pd.read_excel,
     }
 
+    add_src = kwargs.pop('source', False)
     flist = glob(pattern)
 
     if len(flist) == 0:
@@ -164,7 +194,17 @@ def load_df_from_pattern(pattern, loader=None, **kwargs):
         except KeyError:
             raise ValueError("Unrecognised file type %s" %(ext))
 
-    f = lambda x: loader(x, **kwargs)
+    def f(fn):
+        try:
+            df = loader(fn, **kwargs)
+        except Exception as e:
+            raise IOError("Error parsings %s" %fn) from e
+
+        if add_src:
+            df['_source'] = fn
+        return df
+
+    # f = lambda x: loader(x, **kwargs)
     dflist = list(map(f, flist))
     return pd.concat(dflist)
 
@@ -225,6 +265,11 @@ def printse(val, err, sigdig=2, pretty=True):
 
     Returns:
     A string
+
+    Note
+    ------
+    If your number has no uncertainty, consider printh instead.
+
     """
 
     vex=orderOfMag(float(val))
@@ -258,6 +303,10 @@ def printe(val, err, sigdig=2, pretty=True):
 
     Returns:
     A string
+
+    Note
+    ------
+    If your number has no uncertainty, consider printh instead.
     """
 
     val = float(val)
@@ -290,6 +339,45 @@ def printe(val, err, sigdig=2, pretty=True):
     return strr
 
 
+def printh(num:float, unit:str = None) -> str:
+    """Convert a number into a human readable format by adding a suffix
+
+    Like k for thousands, M for millions, etc.
+
+    Input
+    -------------
+    num
+        Number to parse
+    unit
+        (Optional) Units the number is in like metres or Watts. Beware
+        of numbers that already have suffixes like kg or MW.
+
+    Note
+    -----
+    If you number has an associated uncertainty, consider using printe,
+    or printse instead.
+    """
+    postfix = {
+         0:"",
+         3:'k',
+         6:'M',
+         9:'G',
+        12:'T',
+        -3:'m',
+        -6:'μ',
+        -9:'n',
+       -12:'p',
+    }
+
+    if unit is None:
+        unit = ""
+
+    order = np.floor(np.log10(num))
+    order -= int(order % 3)  #Round to the nearest multiple of three
+    modifier = postfix[order]
+    val = num * 10**(-order)
+    text = "%.2f %s%s" %(val, modifier, unit)
+    return text
 
 
 
@@ -382,35 +470,5 @@ def timer(func):
              return func(*args, **kwargs)
 
     return wrapperForFunc
-
-
-
-def check_cols_in_df(df, cols):
-    """Because I always get this wrong"""
-    return check_columns_in_df(df, cols)
-
-def check_columns_in_df(df, cols):
-    """Check that every element of cols in a column in the dataframe
-
-    Inputs
-    --------
-    df
-        A dataframe
-    cols
-        (list or iterable) Columns you expect in dataframe
-
-
-    Returns
-    -------
-    **True** if all `cols` are columns in dataframes
-    """
-    return len(set(cols) - set(df.columns)) <= 0
-
-
-
-
-
-
-
 
 

@@ -3,9 +3,9 @@ from ipdb import set_trace as idebug
 from pprint import pprint 
 import pandas as pd
 
-from inspect import signature
-from typing import Any
-import inspect 
+from typing import Any, List, get_type_hints
+from typeguard import check_type
+import inspect
 
 """
 Every pipeline should be a task, in that it implements Pipeline.run()
@@ -20,7 +20,8 @@ of keys in dicts
 """
 
 class ValidationError(Exception):
-    pass 
+    pass
+
 
 class Task():
     """Base of a task class.
@@ -52,50 +53,42 @@ class Task():
     def __call__(self, *args):
         return self.run(*args)
 
-    def get_input_signature(self):
-        print(signature(self.func).parameters)
-        annotation_list = [x.annotation for x in signature(self.func).parameters.values()]
-        return annotation_list        
+    def get_input_signature(self) -> List:
+        #This fails if an argument isn't decorated
+        type_hints = get_type_hints(self.func)
+        type_hints.pop('return', None)  #Remove return value if present
+        return list(type_hints.values())
 
-    def get_output_signature(self):
-        try:
-            return self.func.__annotations__['return']
-        except KeyError:
-            return Any
+    def get_output_signature(self) -> List:
+        type_hints = get_type_hints(self.func)
+        return_type = [type_hints.pop('return', Any)]
+        return return_type
 
     def run(self, *args):
         print("Running %s with args %s" %(self.name(), args)) 
-        self.validate_args(args, self.get_input_signature())
+        validate_args(args, self.get_input_signature())
         result = self.func(*args)
-        self.validate_args(result, self.get_output_signature())
+        validate_args(result, self.get_output_signature())
         return result 
 
     def validate(self):
-        return True 
+        return True
 
-    def validate_args(self, actual, expected):
-        if not isinstance(actual, tuple):
-            actual = [actual]
-
-        if not isinstance(expected, list):
-            expected = [expected]
-
-        if len(actual) != len(expected):
-            raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
-
-        i = 0
-        for act, exp in zip(actual, expected):
-            if exp in [Any, inspect._empty]:  #no type hint
-                continue 
-
-            if exp is None:
-                exp = type(None)
-            if not isinstance(act, exp):
-                raise ValidationError(f"Argument {i}: Expected {exp}, found {act}")
-            i += 1
-
-    #This should take a list of tasks...
     def can_depend_on(self, *args):
+        """Can this task accept output of dependent tasks
+
+        Input
+        --------
+        A list of task objects.
+
+        Returns
+        ---------
+        **Bool**
+
+        Check that the list return types of the provided tasks matches the input signature of our called
+        function .
+
+        """
         sig1 = self.get_input_signature()
 
         sig2 = []
@@ -111,7 +104,9 @@ class Task():
 
         for a, b in zip(sig1, sig2):
             # idebug()
-            if a != b:
+            try:
+                check_type('', a, b)
+            except TypeError:
                 raise ValidationError(msg)
         return True 
         
@@ -124,6 +119,20 @@ class Task():
         return name 
 
 
+def validate_args(actual, expected):
+    if not isinstance(actual, tuple):
+        actual = [actual]
+    if len(actual) != len(expected):
+        raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
+
+    for act, exp in zip(actual, expected):
+        try:
+            check_type("", act, exp)  #Throws an exception
+        except TypeError:
+            msg = f"Expected {exp}, but type of {act} is {type(act)}"
+            raise ValidationError(msg)
+
+
 
 class GenericTask(Task):
     """Wrap a pre-defined function in a task 
@@ -131,46 +140,58 @@ class GenericTask(Task):
     Most tasks are just simple wrappers around a predefined function.
     Creating a task in this generic, most common, case is handled
     by this class
+
     """
 
     def __init__(self, func, *args, **kwargs):
+        """*args and **kwargs are the configuration arguments to the function.
+
+        Example
+        ---------::
+
+            def power(x, n, int_only=False):
+                ...
+
+            task = GenericTask(power, 2, int_only=False)
+            task.run(4) #--> 16
+        """
         self.func = func 
         self.args = args 
         self.kwargs = kwargs 
 
     def run(self, *params):
         print("Running %s with args %s" %(self.name(), params)) 
-        self.validate_args(params, self.get_input_signature())
+        validate_args(params, self.get_input_signature())
         result = self.func(*params, *self.args, **self.kwargs)
-        self.validate_args(result, self.get_output_signature())
+        validate_args(result, self.get_output_signature())
         return result 
 
 
-def create_task(func, *args, **kwargs):
-    """Create a task from a function
-
-    The fixed arguments in args and kwargs are passed to the function
-    call after any arguments generated by the pipeline. For example::
-
-        task2 = create_task(func, 1 ,2, b=4)
-        pipeline = LinearPipeline([task1, task2])
-
-    `func` will be called as::
-
-        func(x1, 1, 2, b=4)
-
-    where `x1` is the output of `task1`. On the other hand, for a pipeline
-    like ::
-
-        pipeline = Pipeline(
-            [ ('t0', task0),
-              ('t1', task1,
-              ('t2', task2, ['t0', 't1']),
-            ]
-        )
-
-    Then func will be called as::
-        
-        func(x0, x1, 1, 2, b=4)
-    """
-    return GenericTask(func, *args, **kwargs)
+# def create_task(func, *args, **kwargs):
+#     """Create a task from a function
+#
+#     The fixed arguments in args and kwargs are passed to the function
+#     call after any arguments generated by the pipeline. For example::
+#
+#         task2 = create_task(func, 1 ,2, b=4)
+#         pipeline = LinearPipeline([task1, task2])
+#
+#     `func` will be called as::
+#
+#         func(x1, 1, 2, b=4)
+#
+#     where `x1` is the output of `task1`. On the other hand, for a pipeline
+#     like ::
+#
+#         pipeline = Pipeline(
+#             [ ('t0', task0),
+#               ('t1', task1,
+#               ('t2', task2, ['t0', 't1']),
+#             ]
+#         )
+#
+#     Then func will be called as::
+#
+#         func(x0, x1, 1, 2, b=4)
+#     """
+#     return GenericTask(func, *args, **kwargs)

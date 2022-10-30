@@ -98,18 +98,28 @@ def test_validation_with_zero_args():
     t.run()
 
 
-class Task1(Task):
+class Task1a(Task):
     def func(self) -> None:
         return 
 
+class Task1b(Task):
+    def func(self):
+        return 
+
 class Task2(Task):
-    def func(self, a):
+    def func(self, a:str):
         return a 
 
 def test_different_num_args():
-    t1 = Task1()
+    t1a = Task1a()
+    t1b = Task1b()
     t2 = Task2()
 
+    #t1b doesn't specify a return type, so we must 
+    #assume it returns something sensible
+    t2.can_depend_on(t1b)
+
+    #t1a explictly tells us it returns 
     with pytest.raises(ValidationError):
-        t2.can_depend_on(t1)
+        t2.can_depend_on(t1a)
     

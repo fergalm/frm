@@ -1,4 +1,3 @@
-# from types import NoneType
 from ipdb import set_trace as idebug
 from pprint import pprint 
 import pandas as pd
@@ -53,26 +52,42 @@ class Task():
     def __call__(self, *args):
         return self.run(*args)
 
-    def get_input_signature(self) -> List:
-        #This fails if an argument isn't decorated
-        type_hints = get_type_hints(self.func)
-        type_hints.pop('return', None)  #Remove return value if present
-        return list(type_hints.values())
-
-    def get_output_signature(self) -> List:
-        type_hints = get_type_hints(self.func)
-        return_type = [type_hints.pop('return', Any)]
-        return return_type
-
     def run(self, *args):
         print("Running %s with args %s" %(self.name(), args)) 
-        validate_args(args, self.get_input_signature())
+        self.validate_input_args(args)
         result = self.func(*args)
-        validate_args(result, self.get_output_signature())
+        self.validate_return_value(result)
         return result 
 
-    def validate(self):
-        return True
+    def validate_input_args(self, args:List):
+        hints = self.get_input_signature()
+
+        argnames = self.func.__code__.co_varnames
+        if argnames[0] == 'self':
+            argnames = argnames[1:]
+
+        pprint(locals())
+        for name, val in zip(argnames, args):
+            validate_type(val, hints[name])
+
+    def get_input_signature(self):
+        hints = dict()
+        annotations = self.func.__annotations__  #Mnuemonic
+        argnames = self.func.__code__.co_varnames
+        for arg in argnames:
+            hints[arg] = annotations.get(arg, Any)
+        return hints 
+
+    def validate_return_value(self, ret_val):
+        hint = self.get_output_signature()
+        validate_type(ret_val, hint)
+
+    def get_output_signature(self):
+        # idebug()
+        hint = self.func.__annotations__.get('return', Any)
+        if hint is None:
+            hint = type(None)
+        return hint 
 
     def can_depend_on(self, *args):
         """Can this task accept output of dependent tasks
@@ -89,27 +104,18 @@ class Task():
         function .
 
         """
-        sig1 = self.get_input_signature()
+        my_hints = self.get_input_signature()
+        my_hints.pop('self', None)
 
-        sig2 = []
-        for task in args:
-            sig = task.get_output_signature()
-            if not isinstance(sig, list):
-                sig = [sig]
-            sig2.extend(sig)
+        for key, task in zip(my_hints.keys(), args):
+            # validate_type(task.get_output_signature(), my_hints[key])
+            if not issubclass(task.get_output_signature(), my_hints[key]):
+                raise ValidationError
+        return True
 
-        msg = f"Task\n  {self}\n  expects\n  {sig1}\n  but input tasks\n  {args}\n  supplies\n  {sig2}"
-        if len(sig1) != len(sig2):
-            raise ValidationError(msg)
+    def validate(self):
+        return True
 
-        for a, b in zip(sig1, sig2):
-            # idebug()
-            try:
-                check_type('', a, b)
-            except TypeError:
-                raise ValidationError(msg)
-        return True 
-        
     def func(self, df: pd.DataFrame) -> str:
         """Overwrite this function with task logic"""
         return self.name()
@@ -118,19 +124,27 @@ class Task():
         name = str(self).split()[0][1:]
         return name 
 
+def validate_type(val, hint):
+    try:
+        check_type('', val, hint)
+    except TypeError:
+        msg = f"Type of {val} is {type(val)}, but I expected {hint}"
+        raise ValidationError(msg)
 
-def validate_args(actual, expected):
-    if not isinstance(actual, tuple):
-        actual = [actual]
-    if len(actual) != len(expected):
-        raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
 
-    for act, exp in zip(actual, expected):
-        try:
-            check_type("", act, exp)  #Throws an exception
-        except TypeError:
-            msg = f"Expected {exp}, but type of {act} is {type(act)}"
-            raise ValidationError(msg)
+
+# def validate_args(actual, expected):
+#     if not isinstance(actual, tuple):
+#         actual = [actual]
+#     if len(actual) != len(expected):
+#         raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
+
+#     for act, exp in zip(actual, expected):
+#         try:
+#             check_type("", act, exp)  #Throws an exception
+#         except TypeError:
+#             msg = f"Expected {exp}, but type of {act} is {type(act)}"
+#             raise ValidationError(msg)
 
 
 
@@ -160,11 +174,14 @@ class GenericTask(Task):
         self.kwargs = kwargs 
 
     def run(self, *params):
-        print("Running %s with args %s" %(self.name(), params)) 
-        validate_args(params, self.get_input_signature())
+        raise NotImplementedError()
+        #I need to think about validation here
+        print("Running %s with args %s" %(self.name(), args)) 
+        self.validate_input_args(params)
         result = self.func(*params, *self.args, **self.kwargs)
-        validate_args(result, self.get_output_signature())
+        self.validate_return_value(result)
         return result 
+
 
 
 # def create_task(func, *args, **kwargs):

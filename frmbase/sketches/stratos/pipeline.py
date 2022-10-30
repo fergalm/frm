@@ -198,30 +198,30 @@ class Pipeline(Task):
     def validate(self, *args):
         tasklist = self.tasklist[::-1]
 
-        val = True 
         for label in tasklist[:-1]:
             t0 = self.task_dict[label]['func']
             reqs = self.graph.successors(label)
 
             req_tasks = lmap(lambda x: self.task_dict[x]['func'], reqs)
-            val = t0.can_depend_on(*req_tasks)
-            #t0.validate()  #Recursively validate? Need to think about this
-
-            if not val:
-                raise ValidationError("Validation failed")
+            t0.can_depend_on(*req_tasks)
+            # t0.validate()  #Recursively validate Need to think about this
             log.info(f"Task {label} validates")
+
 
         #Validate the first task against the input
         label = tasklist[-1]
         t0 = self.task_dict[label]['func']
-        input_sig = t0.get_input_signature()
-        if len(args) != len(input_sig):
-            raise ValidationError(f"Task {label} expects {input_sig}, but input is {args}")
-        
-        for a, b in zip(args, input_sig):
-            if not isinstance(a, b):
-                raise ValidationError(f"Task {label} expects object of type {b}, received {a}")
 
+        #If the input to this pipline is the output of another pipeline,
+        #we check for compatibility with can_depend_on. If the input
+        #is actual data, we just validate the data
+        try:
+            t0.can_depend_on(*args)
+        except ValidationError:
+            t0.validate_input_args(*args)
+
+        #Recursively validate
+        # t0.validate()
         return True         
 
     

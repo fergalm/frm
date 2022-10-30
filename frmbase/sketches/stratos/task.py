@@ -62,7 +62,8 @@ class Task():
     def validate_input_args(self, args:List):
         hints = self.get_input_signature()
 
-        argnames = self.func.__code__.co_varnames
+        argcount = self.func.__code__.co_argcount
+        argnames = self.func.__code__.co_varnames[:argcount]
         if argnames[0] == 'self':
             argnames = argnames[1:]
 
@@ -73,9 +74,14 @@ class Task():
     def get_input_signature(self):
         hints = dict()
         annotations = self.func.__annotations__  #Mnuemonic
-        argnames = self.func.__code__.co_varnames
+        argcount = self.func.__code__.co_argcount
+        argnames = self.func.__code__.co_varnames[:argcount]
+
         for arg in argnames:
             hints[arg] = annotations.get(arg, Any)
+        # pprint(locals())
+        # idebug()
+        hints.pop('self', None)
         return hints 
 
     def validate_return_value(self, ret_val):
@@ -107,9 +113,13 @@ class Task():
         my_hints = self.get_input_signature()
         my_hints.pop('self', None)
 
+        # idebug()
+        if len(args) != len(my_hints):
+            msg = f"Task {self} expected {len(my_hints)} args, got {len(args)}"
+            raise ValidationError(msg)
+
         for key, task in zip(my_hints.keys(), args):
-            # validate_type(task.get_output_signature(), my_hints[key])
-            if not issubclass(task.get_output_signature(), my_hints[key]):
+            if not is_compatible(task.get_output_signature(), my_hints[key]):
                 raise ValidationError
         return True
 
@@ -132,6 +142,16 @@ def validate_type(val, hint):
         raise ValidationError(msg)
 
 
+def is_compatible(class_type, hint):
+    if hint is Any:
+        return True 
+    
+    #TODO: This means that a function that does not declare a return
+    #type can't be accepted as input to a function that declares a type
+    #for its inputs. Is this what I want?
+    if class_type is Any:
+        return False 
+    return issubclass(class_type, hint)
 
 # def validate_args(actual, expected):
 #     if not isinstance(actual, tuple):

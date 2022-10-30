@@ -25,6 +25,8 @@ class C(Task):
         df['val'] = arr
         return df
 
+    
+
 class Merge(Task):
     def func(self, a: np.ndarray, b: np.ndarray) -> pd.DataFrame:
         df = pd.DataFrame()
@@ -117,12 +119,17 @@ def test_diamond_pipeline():
 #     assert np.allclose(result, np.arange(5))
 
 def test_pipeline_as_task1():
-    """This isn't perfect. The sub pipeline must be indepdently validated"""
+    """Check that a pipeline masquerading as a task gets recursively validated"""
+
+    #This pipeline fails validation
     sub = [
-        ('b', B(),),
-        ('c', C(), 'b')
+        ('b', B(), 'c'),
+        ('c', C())
     ]
     sub = Pipeline(sub)
+
+    with pytest.raises(ValidationError):
+        sub.validate()
 
     pipeline = [
         ('a', A()),
@@ -130,24 +137,31 @@ def test_pipeline_as_task1():
     ]
 
     pipeline = Pipeline(pipeline)
-    pipeline.validate()
+    with pytest.raises(ValidationError):
+        pipeline.validate()
     # df = pipeline.run()
 
 
 def test_pipeline_as_task0():
+    #This pipeline fails validation
     sub = [
-        ('a', A()),
-        ('b', B(), 'a'),
+        ('b', B(), ),
+        ('a', A(), 'b'),
     ]
     sub = Pipeline(sub)
+
+    with pytest.raises(ValidationError):
+        # idebug()
+        sub.validate()
 
     pipeline = [
         ('s', sub),
         ('c', C(), 's'),
     ]
     pipeline = Pipeline(pipeline)
-    pipeline.validate()
-    df = pipeline.run()
+    with pytest.raises(ValidationError):
+        pipeline.validate()
+    # df = pipeline.run()
 
 
 def test_validate_pipeline_with_input_arg():

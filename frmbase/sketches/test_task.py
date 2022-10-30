@@ -115,9 +115,11 @@ def test_different_num_args():
     t1b = Task1b()
     t2 = Task2()
 
-    #t1b doesn't specify a return type, so we must 
-    #assume it returns something sensible
-    t2.can_depend_on(t1b)
+    #t1b doesn't specify a return type, so it can return Any
+    #Any to too general a return type for t2 to accept, it needs a string.
+    #I'm not sure this is the behaviour I really want.
+    with pytest.raises(ValidationError):
+         t2.can_depend_on(t1b)
 
     #t1a explictly tells us it returns 
     with pytest.raises(ValidationError):

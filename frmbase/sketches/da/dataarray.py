@@ -9,6 +9,18 @@ def npmap(x, y):
     return np.array(lmap(x, y))
 
 class DataArray:
+    """
+    Addressing
+
+    da['a'] #Get the entire column called 'a'
+    da[:4, 'a'] #Get the first 4 elts of column a
+    da[:4]   #Get first elts of all arrays
+
+    da[ ['a', 'b']]  #Get a DataArray containing just these two cols 
+    da[:4, ['a', 'b']]  #Get first 4 rows of just these two cols 
+
+    Setting should work for all these operations too.
+    """
     def __init__(self, src:dict = None):
 
         if src is None:

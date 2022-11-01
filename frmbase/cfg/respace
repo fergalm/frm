@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+from __future__ import division
+
+from pdb import set_trace as debug
+import argparse
+import re
+
+
+
+def respace(stringList, sep, maxlen=65535):
+    """Take a list of strings and add white space so the columns
+    are left justified.
+    """
+
+    maxlen = int(maxlen)
+
+    #Measure the maximum width of each column
+    size = dict()
+    for line in stringList:
+        if re.search("^#", line):
+            continue    #Skip comments
+
+        words = line.rstrip().split(sep)
+        for i, w in enumerate(words):
+            if i in size:
+                size[i] = max(size[i], len(w))
+            else:
+                size[i] = len(w)
+
+    #Enforce max len requirement
+    for i in size.keys():
+        size[i] = min(size[i], maxlen)
+
+    #Loop through a second time, format-printing each element
+    outList = []
+    for line in stringList:
+        if re.search("^#", line):
+            outList.append(line)  #Don't reformat comments
+        else:
+            outLine = []
+            for i, w in enumerate(line.rstrip().split(sep)):
+
+                if len(w) > maxlen:
+                    w = w[:maxlen-2] + ".."
+
+                newWord= "%-*s" %(size[i], w)
+
+                outLine.append(newWord)
+            outList.append("  ".join(outLine))
+
+    return outList
+
+def main(filename, sep, maxlen):
+    with open(filename) as fp:
+        text = fp.readlines()
+
+    out = respace(text, sep, maxlen)
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Apply regularly spacing to a file")
+
+    parser.add_argument("file", help="File to parse")
+    parser.add_argument('-s', '--sep', help="Column separation character")
+    parser.add_argument('-m', '--max', help="Max length of each column")
+    args = parser.parse_args()
+
+    if args.max is None:
+        args.max = 65535
+
+    main(args.file, args.sep, args.max)
+

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#Cheat sheet for commonly forgotten shell commands
+#2018-12-17
+#Fergal Mullally
+
+function title
+{
+    bold=\\e[1m
+    red=\\e[31m
+    normal=\\e[0m
+    echo -e $bold$red $@ $normal
+}
+
+
+title strings, nm
+echo List strings, symbols defined in .so or .a file
+
+title ldd
+echo List libraries a binary file was linked against
+
+title acpi -V
+echo List battery charge and capacity
+    
+title file
+echo Get summary information on a file type
+
+title lsof
+echo List open files
+
+title conda env remove -n ENV_NAME -y
+echo Remove a conda envirnonmy from disk
+
+title ssh bastion101 -f export 
+echo "Get an uptodate list of OI env vars (Beware pwds can write to DB!"
+
+title pdfunite '\*.pdf' output.pdf
+echo "Combine multiple pdf files into one"
+
+title respace file.csv -s ','
+echo "Reformat a csv file with columns of equal width"
+
+title fitsheader file.fits
+echo "New name for imhead. Packaged with astropy"
+
+title convert -delay 100 'fig\*.png'   anim.gif
+echo "Make an animated gif with 1 second delay between frames"
+
+title conda remove --name myenv --all
+echo "Remove a conda envirnoment"
+
+title conda env export --from-history
+echo "List all explicitly installed packages in env"

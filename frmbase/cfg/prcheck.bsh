@@ -1,0 +1,64 @@
+#!/bin/bash 
+
+# Quick script to check everything is ready for a PR push
+
+srcdir=prod
+testdir=tests 
+
+if [ ! -e $srcdir ]
+then
+	echo "src/py not found. Are you in top level directory?"
+	exit
+fi
+
+if [ ! -e $testdir ]
+then
+	echo "tests/ not found. Are you in top level directory?"
+fi
+
+#Emerson tests
+for dir in $srcdir $testdir bin
+do
+    if [ -e $dir ]
+    then
+        pycodestyle $dir 
+    else
+        echo "Directory $dir not found"
+    fi 
+done
+echo "PASS: No Pycodestyle complaints"
+
+#Unit tests
+py.test $testdir > test.log
+if [[ $? -gt 0 ]]
+then 
+    cat test.log 
+    echo "FAIL: Unit tests not passing"
+    exit 
+fi
+echo "PASS: No tests failed"
+
+#Test for uncommited files
+uncommit=`git diff --numstat | wc -l`
+if [ $uncommit -gt  0 ]
+then
+	echo "FAIL: $uncommit files need to be checked in"
+	exit
+fi
+
+echo "PASS: No modified files found"
+
+#Look for untracked python files
+for dir in $srcdir $testdir bin
+do
+    untracked=`git status $dir --porcelain | grep '??' | grep -E '.py$' | wc -l`
+    if [ $untracked -gt 0 ]
+    then
+        git status $dir --porcelain | grep '??' | grep -E '.py$'
+        echo "FAIL: $untracked python files found in $dir"
+        exit 
+    fi
+done
+
+echo "PASS: No untracked python files found"
+echo "SUCCESS"

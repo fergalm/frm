@@ -79,17 +79,18 @@ function test_uncommitted
     fail=0
     for dir in $@
     do
-        uncommit=`git diff --numstat | wc -l`
+        uncommit=`git diff --numstat $dir  | wc -l`
         if [ $uncommit -gt  0 ]
         then
-            echo "FAIL: $uncommit files in $dir need to be checked in "
-            $fail=1
+            echo "FAIL: $uncommit files in $dir need to be checked in"
+            fail=1
         fi
     done 
     
-    if [ $fail -gt 0 ]
+    if [[ $fail -gt 0 ]]
     then
         echo "FAIL: Modified files found"
+        git diff --numstat | cat
         exit 1
     fi
     echo "PASS: All files added to git are checked in"
@@ -111,7 +112,7 @@ function test_untracked
     
     done 
     
-    if [ $fail -gt 0 ]
+    if [[ $fail -gt 0 ]]
     then
         echo "FAIL: Untracked python files found"
         exit 1
@@ -130,13 +131,36 @@ function run_unit_tests
         echo "FAIL: Unit tests not passing"
         exit 
     fi
-    echo "PASS: No tests failed"
+    echo "PASS: All tests passed"
+}
+
+
+function test_debug_statements
+{
+    fail=0
+    for dir in $@
+    do
+        count=`find $dir -name '*.py' | xargs grep '^\s*debug()' | wc -l`
+        if [[ $count -gt 0 ]]
+        then
+            find $dir -name '*.py' | xargs grep -n 'debug()'
+            fail=1
+        fi
+    done 
+    
+    if [[ $fail -gt 0 ]]
+    then
+        echo "FAIL: Debug statements lurking in code"
+        exit 1
+    fi
+    echo "PASS: No Debug statements found"
 }
 
 
 test_paths_exist $srcdir $testdir
 test_pycodestyle $srcdir $testdir
 test_flake8 $srcdir $testdir 
+test_debug_statements $srcdir $testdir
 test_uncommitted $srcdir $testdir 
 test_untracked $srcdir $testdir
 run_unit_tests $testdir

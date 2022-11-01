@@ -54,7 +54,7 @@ class Task():
         return self.run(*args)
 
     def run(self, *args):
-        print("Running %s with args %s" %(self.name(), args)) 
+        # print("Running %s with args %s" %(self.name(), args)) 
         self.validate_input_args(args)
         result = self.func(*args)
         self.validate_return_value(result)

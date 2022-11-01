@@ -4,10 +4,9 @@ from pprint import pprint
 import pandas as pd
 import numpy as np
 
-import pytest
 from  stratos.task import  Task, ValidationError
-
 from typing import Any
+import pytest
 
 
 class Length(Task):
@@ -125,8 +124,3 @@ def test_different_num_args():
     with pytest.raises(ValidationError):
         t2.can_depend_on(t1a)
     
-<<<<<<< Updated upstream
-=======
-
-
->>>>>>> Stashed changes

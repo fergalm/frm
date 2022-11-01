@@ -400,8 +400,8 @@ class ForEachPipeline(Pipeline):
     `get_input_signature` and `get_output_signature` should also tell
     you what the subpipeline is expecting in terms of datatype
     """
-    def __init__(self, pipeline):
-        self.pipeline = pipeline 
+    def __init__(self, tasks, gc=True):
+        self.pipeline = Pipeline(tasks, gc)
 
     def run(self, *args):
         feed = args[0]

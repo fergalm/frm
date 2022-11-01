@@ -5,6 +5,7 @@ import pandas as pd
 from typing import Any, List, get_type_hints
 from typeguard import check_type
 import inspect
+import pytypes 
 
 """
 Every pipeline should be a task, in that it implements Pipeline.run()
@@ -68,7 +69,7 @@ class Task():
 
         pprint(locals())
         for name, val in zip(argnames, args):
-            validate_type(val, hints[name])
+            validate_obj(val, hints[name])
 
     def get_input_signature(self):
         hints = dict()
@@ -80,7 +81,7 @@ class Task():
 
     def validate_return_value(self, ret_val):
         hint = self.get_output_signature()
-        validate_type(ret_val, hint)
+        validate_obj(ret_val, hint)
 
     def get_output_signature(self):
         # idebug()
@@ -109,7 +110,7 @@ class Task():
 
         for key, task in zip(my_hints.keys(), args):
             # validate_type(task.get_output_signature(), my_hints[key])
-            if not issubclass(task.get_output_signature(), my_hints[key]):
+            if not validate_type(task.get_output_signature(), my_hints[key]):
                 raise ValidationError
         return True
 
@@ -124,29 +125,23 @@ class Task():
         name = str(self).split()[0][1:]
         return name 
 
-def validate_type(val, hint):
-    try:
-        check_type('', val, hint)
-    except TypeError:
+
+def validate_obj(val, hint):
+    if not pytypes.is_of_type(val, hint):
         msg = f"Type of {val} is {type(val)}, but I expected {hint}"
         raise ValidationError(msg)
+    return True
 
+    #try:
+        #check_type('', val, hint)
+    #except TypeError:
+        #raise ValidationError(msg)
 
-
-# def validate_args(actual, expected):
-#     if not isinstance(actual, tuple):
-#         actual = [actual]
-#     if len(actual) != len(expected):
-#         raise ValidationError(f"Expected {len(expected)} arguments, got {len(actual)}")
-
-#     for act, exp in zip(actual, expected):
-#         try:
-#             check_type("", act, exp)  #Throws an exception
-#         except TypeError:
-#             msg = f"Expected {exp}, but type of {act} is {type(act)}"
-#             raise ValidationError(msg)
-
-
+def validate_type(mytype, hint):
+    if not pytypes.is_subtype(mytype, hint):
+        msg = f"Passed {mytype} but I expected {hint}"
+        raise ValidationError(msg)
+    return True
 
 class GenericTask(Task):
     """Wrap a pre-defined function in a task 

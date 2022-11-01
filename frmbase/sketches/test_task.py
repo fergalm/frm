@@ -125,3 +125,8 @@ def test_different_num_args():
     with pytest.raises(ValidationError):
         t2.can_depend_on(t1a)
     
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes

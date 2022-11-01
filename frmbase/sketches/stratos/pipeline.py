@@ -217,8 +217,8 @@ class Pipeline(Task):
         #is actual data, we just validate the data
         try:
             t0.can_depend_on(*args)
-        except ValidationError:
-            t0.validate_input_args(*args)
+        except (AttributeError, ValidationError):
+            t0.validate_input_args(args)
 
         #Recursively validate
         # t0.validate()
@@ -420,7 +420,7 @@ class ForEachPipeline(Pipeline):
         TODO
         The return type should be a list of the type accepted by self.pipeline
         """
-        return (list,)
+        return {'a':List}
 
     def get_output_signature(self):
         """See note on chaining pipelines

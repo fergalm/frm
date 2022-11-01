@@ -68,6 +68,10 @@ class Task():
         if argnames[0] == 'self':
             argnames = argnames[1:]
 
+        if len(args) != len(argnames):
+            msg = f"Task {self} expects {len(argnames)} args, got {len(args)}"
+            raise ValidationError(msg)
+
         pprint(locals())
         for name, val in zip(argnames, args):
             validate_obj(val, hints[name])

@@ -168,11 +168,12 @@ def test_validate_pipeline_with_input_arg():
     pipeline = Pipeline( [ ('b', B(),)] )
         
     assert pipeline.validate(4)
-    with pytest.raises(ValidationError):
-        pipeline.validate()
 
     with pytest.raises(ValidationError):
         pipeline.validate('a')
+
+    with pytest.raises(ValidationError):
+        pipeline.validate()
     
     with pytest.raises(ValidationError):
         pipeline.validate(4, 5)

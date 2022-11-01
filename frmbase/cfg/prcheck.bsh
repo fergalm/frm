@@ -1,64 +1,150 @@
 #!/bin/bash 
 
 # Quick script to check everything is ready for a PR push
+#TODO: turn this into functions
 
 srcdir=prod
 testdir=tests 
 
-if [ ! -e $srcdir ]
-then
-	echo "src/py not found. Are you in top level directory?"
-	exit
-fi
 
-if [ ! -e $testdir ]
-then
-	echo "tests/ not found. Are you in top level directory?"
-fi
+function test_flake8
+{
+    fail=0
+    for dir in $@
+    do
+        flake8 $dir > log.txt
+        if [ -s log.txt ]
+        then
+            cat log.txt
+            rm log.txt
+            fail=1
+        fi
+    done
 
-#Emerson tests
-for dir in $srcdir $testdir bin
-do
-    if [ -e $dir ]
+    if [ $fail -gt 0 ]
     then
-        pycodestyle $dir 
-    else
-        echo "Directory $dir not found"
-    fi 
-done
-echo "PASS: No Pycodestyle complaints"
+        echo "FAIL: flake8 violations found"
+        exit 1
+    fi
+    echo "PASS: No flake8 violations found"
+}
 
-#Unit tests
-py.test $testdir > test.log
-if [[ $? -gt 0 ]]
-then 
-    cat test.log 
-    echo "FAIL: Unit tests not passing"
-    exit 
-fi
-echo "PASS: No tests failed"
 
-#Test for uncommited files
-uncommit=`git diff --numstat | wc -l`
-if [ $uncommit -gt  0 ]
-then
-	echo "FAIL: $uncommit files need to be checked in"
-	exit
-fi
+function test_pycodestyle
+{
+    fail=0
+    for dir in $@
+    do
+        pycodestyle $dir > log.txt
+        if [ -s log.txt ]
+        then
+            cat log.txt
+            rm log.txt
+            fail=1
+        fi
+    done
 
-echo "PASS: No modified files found"
-
-#Look for untracked python files
-for dir in $srcdir $testdir bin
-do
-    untracked=`git status $dir --porcelain | grep '??' | grep -E '.py$' | wc -l`
-    if [ $untracked -gt 0 ]
+    if [ $fail -gt 0 ]
     then
-        git status $dir --porcelain | grep '??' | grep -E '.py$'
-        echo "FAIL: $untracked python files found in $dir"
+        echo "FAIL: pycodestyle violations found"
+        exit 1
+    fi
+    echo "PASS: No pycodestyle violations found"
+}
+
+
+function test_paths_exist
+{
+    fail=0
+    for dir in $@
+    do
+        if [ ! -e $dir ]
+        then
+            echo "Path $dir not found. Are you in top level directory"
+            fail=1
+        fi
+    done 
+    
+    if [ $fail -gt 0 ]
+    then
+        echo "FAIL: Not all paths found"
+        exit 1
+    fi
+    echo "PASS: All paths found"
+}
+
+
+function test_uncommitted
+{
+    fail=0
+    for dir in $@
+    do
+        uncommit=`git diff --numstat | wc -l`
+        if [ $uncommit -gt  0 ]
+        then
+            echo "FAIL: $uncommit files in $dir need to be checked in "
+            $fail=1
+        fi
+    done 
+    
+    if [ $fail -gt 0 ]
+    then
+        echo "FAIL: Modified files found"
+        exit 1
+    fi
+    echo "PASS: All files added to git are checked in"
+}
+
+
+function test_untracked
+{
+    fail=0
+    for dir in $@
+    do
+        untracked=`git status $dir --porcelain | grep '??' | grep -E '.py$' | wc -l`
+        if [ $untracked -gt 0 ]
+        then
+            git status $dir --porcelain | grep '??' | grep -E '.py$'
+            echo "$untracked python files found in $dir"
+            fail=1
+        fi
+    
+    done 
+    
+    if [ $fail -gt 0 ]
+    then
+        echo "FAIL: Untracked python files found"
+        exit 1
+    fi
+    echo "PASS: All python files known to git"
+}
+
+
+function run_unit_tests
+{
+    #Unit tests
+    py.test $testdir > test.log
+    if [[ $? -gt 0 ]]
+    then 
+        cat test.log 
+        echo "FAIL: Unit tests not passing"
         exit 
     fi
-done
+    echo "PASS: No tests failed"
+}
 
-echo "PASS: No untracked python files found"
+
+test_paths_exist $srcdir $testdir
+test_pycodestyle $srcdir $testdir
+test_flake8 $srcdir $testdir 
+test_uncommitted $srcdir $testdir 
+test_untracked $srcdir $testdir
+run_unit_tests $testdir
 echo "SUCCESS"
+
+# 
+# 
+# 
+# 
+# 
+# 

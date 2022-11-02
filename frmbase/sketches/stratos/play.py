@@ -1,4 +1,4 @@
-from  stratos.pipeline import Pipeline, ForEachPipeline
+from  stratos.pipeline import Pipeline, ForEachPipeline, LinearPipeline
 from stratos.task  import Task
 
 from typing import List 
@@ -28,7 +28,8 @@ class Head(Task):
 
 class Filter(Task):
     def func(self, df:pd.DataFrame) -> pd.DataFrame:
-        df = df[~df.Winner.isna()].copy()
+        #df = df[~df.Winner.isna()].copy()
+        df[df.val > 4000].copy()
         return df 
 
 class Concat(Task):
@@ -37,7 +38,8 @@ class Concat(Task):
 
 
 def main():
-    pattern = "/home/fergal/data/elections/MdBoEl/Anne_Arundel/*Primary.csv"
+    #pattern = "/home/fergal/data/elections/MdBoEl/Anne_Arundel/*Primary.csv"
+    pattern = "/home/fergal/data/peak_day_forecast/pseg/forecasts/2018/*.csv"
 
     sub = [ 
         ('load', LoadFile()),
@@ -46,12 +48,13 @@ def main():
     ]
     sub = ForEachPipeline(sub)
 
-    tasks = [
-        ('find', FindFiles(pattern)),
-        ('load', sub, 'find'),
-        ('cat', Concat(), 'load')
-    ]
-     
-    pipeline = Pipeline(tasks)
+    #tasks = [
+        #('find', FindFiles(pattern)),
+        #('process', sub, 'find'),
+        #('cat', Concat(), 'process')
+    #]
+
+    tasks = [FindFiles(pattern), sub, Concat()]
+    pipeline = LinearPipeline(tasks)
     return pipeline.run()
     

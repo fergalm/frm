@@ -72,7 +72,7 @@ class Task():
             msg = f"Task {self} expects {len(argnames)} args, got {len(args)}"
             raise ValidationError(msg)
 
-        pprint(locals())
+        #pprint(locals())
         for name, val in zip(argnames, args):
             validate_obj(val, hints[name])
 
@@ -186,7 +186,7 @@ class GenericTask(Task):
     def run(self, *params):
         raise NotImplementedError()
         #I need to think about validation here
-        print("Running %s with args %s" %(self.name(), args)) 
+        #print("Running %s with args %s" %(self.name(), args)) 
         self.validate_input_args(params)
         result = self.func(*params, *self.args, **self.kwargs)
         self.validate_return_value(result)

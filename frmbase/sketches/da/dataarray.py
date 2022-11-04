@@ -2,6 +2,27 @@ from ipdb import set_trace as idebug
 from pprint import pprint
 import numpy as np
 
+"""
+A sketch of a lighterweight replacement to DataFrames
+
+A dataarray is a wrapper around a dictionary of columnar data with intuitive indexing
+Columns are referred to by strings (or other hashable types), and rows are indexed by integer.
+This allows
+
+da[:4, 'col]  to work, with no messing around with .loc and .iloc
+
+By having no operations that work at the series level other than getting (and maybe setting)
+the class is much smaller, easier to maintain, and more flexible.
+
+Todo
+-----
+o Implement setters
+o Groupers
+o row() to return a named tuple?
+
+"""
+
+
 def lmap(x, y):
     return list(map(x, y))
 
@@ -32,43 +53,107 @@ class DataArray:
             self.size = sizes[0]
             self.dict = src
 
+    def __contains__(self, col):
+        return col in self.dict.keys()
+
+    def __len__(self):
+        return self.size
+
+    def __repr__(self):
+        cols = self.columns()
+        return "<DataArray %i rows, %i columns: %s>" %(self.size,len(cols), cols)
+
     def __getitem__(self, key):
         if not isinstance(key, tuple):
             key = (key,)
 
         if len(key) == 1:
-            col = key[0]
-            if isinstance(col, list):
-                return self.get_sub_array(col)
+            key = key[0]
+            if isinstance(key, list):
+                return self._get_column_subset(key)
+            elif isinstance(key, slice):
+                return self._get_slice(key)
+            elif isinstance(key, np.ndarray) and key.dtype == bool:
+                return self._get_slice(key)
             else:
                 return self.dict[key[0]]
         elif len(key) == 2:
             col = key[1]
+
+            if col == ':':
+                col = self.columns()  #colon implies all columns
             sl = key[0]
-            return self.dict[col][sl]
+            tmp = self.__getitem__(col)
+            return tmp.__getitem__(sl)
         else:
             raise ValueError("Too many dimensions")
 
     def __setitem__(self, key, value):
-        if not isinstance(key, tuple):
-            key = (key,)
+        raise TypeError("DataArrays are immutable for now")
+        # if not isinstance(key, tuple):
+        #     key = (key,)
+        #
+        # if len(key) == 1:
+        #     assert len(value) == self.size or self.size is None
+        #     self.dict[key[0]] = value
+        # if len(key) == 2:
+        #     col = key[1]
+        #     sl = key[0]
+        #     self.dict[col][sl] = value
 
-        if len(key) == 1:
-            assert len(value) == self.size or self.size is None
-            self.dict[key[0]] = value
-        if len(key) == 2:
-            col = key[1]
-            sl = key[0]
-            self.dict[col][sl] = value
+    def columns(self):
+        #Maybe a list?
+        return set(self.dict.keys())
 
-    def keys(self):
-        return self.dict.keys()
+    def select(self, *cols):
+        return self._get_column_subset(cols)
 
-    def get_sub_array(self, cols):
+    def _get_column_subset(self, cols):
         src = dict()
         for c in cols:
             src[c] = self.dict[c].copy()
         return DataArray(src)
-"""
-col
-"""
+
+    def _get_slice(self, sl):
+        src = dict()
+        for c in self.columns():
+            src[c] = self.dict[c][sl]
+        return DataArray(src)
+
+    def copy(self):
+        for c in self.columns():
+            self.dict[c] = self.dict[c].copy()  #May not be general enough
+
+
+# class Grouper:
+#     def __init__(self, da, *cols, **opts):
+#         """This algo insists you pass in column names, no option of passing in an array
+#         Not to hard to change.
+#         """
+#
+#         groups = {}
+#         for i in range(len(da)):
+#             hash = tuple(lambda x: da[i, x], cols)
+#
+#             try:
+#                 groups[hash].append(i)
+#             except KeyError:
+#                 groups[hash] = [i]
+#
+#         self.da = da
+#         self.groups = groups
+#
+#     def get_keys(self):
+#         return list(self.groups.keys())
+#
+#     def get_indices(self, key):
+#         return self.groups[key]
+#
+#     def get_group(self, key):
+#         wh = self.get_indices(key)
+#         return self.da[wh]
+#
+#     def apply(self, func, *args, **kwargs):
+#         for k in self.get_keys():
+#             da = self.get_group(k)
+#             return func(da, *args, **kwargs)

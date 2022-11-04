@@ -20,6 +20,10 @@ o Implement setters
 o Groupers
 o row() to return a named tuple?
 
+o A datetime column 
+o A string column
+o A list column (just a list, but allows binary indexing) 
+o Metadata
 """
 
 
@@ -123,6 +127,16 @@ class DataArray:
     def copy(self):
         for c in self.columns():
             self.dict[c] = self.dict[c].copy()  #May not be general enough
+
+    # def row(self, i):
+    #     """This looks very slow..."""
+    #     raise NotImplementedError("Needs testing")
+    #     from collections import namedtuple
+    #     ttype = NamedTuple('row', self.columns())
+    #     row = ttype()
+    #     for c in self.columns:
+    #         row[c] == self.dict[c][i]
+    #     return row
 
 
 # class Grouper:

@@ -17,13 +17,27 @@ the class is much smaller, easier to maintain, and more flexible.
 Todo
 -----
 o Implement setters
-o Groupers
-o row() to return a named tuple?
+o Groupers -- untested
+x row() to return a named tuple?
 
-o A datetime column 
-o A string column
+o Define acceptable datatypes
+    o What operations do they support
+        o slicing
+        o ???
+    o A datetime column 
+    o A string column
+        __getitem__(slice)
+        upper
+        lower
+        contains -> bool array
+        len  -> int array
+        regex
+        + (concat)
+        
 o A list column (just a list, but allows binary indexing) 
 o Metadata
+o merge
+o immutable flag
 """
 
 
@@ -46,7 +60,8 @@ class DataArray:
 
     Setting should work for all these operations too.
     """
-    def __init__(self, src:dict = None):
+    def __init__(self, src:dict = None, meta:dict[str,str]=None):
+        self.meta = None or meta
 
         if src is None:
             self.size = None
@@ -112,6 +127,10 @@ class DataArray:
     def select(self, *cols):
         return self._get_column_subset(cols)
 
+    def copy(self):
+        for c in self.columns():
+            self.dict[c] = self.dict[c].copy()  #May not be general enough
+
     def _get_column_subset(self, cols):
         src = dict()
         for c in cols:
@@ -124,50 +143,67 @@ class DataArray:
             src[c] = self.dict[c][sl]
         return DataArray(src)
 
-    def copy(self):
-        for c in self.columns():
-            self.dict[c] = self.dict[c].copy()  #May not be general enough
 
-    # def row(self, i):
-    #     """This looks very slow..."""
-    #     raise NotImplementedError("Needs testing")
-    #     from collections import namedtuple
-    #     ttype = NamedTuple('row', self.columns())
-    #     row = ttype()
-    #     for c in self.columns:
-    #         row[c] == self.dict[c][i]
-    #     return row
+    def row(self, i):
+        """This looks very slow..."""
+        from collections import namedtuple
+        cols = self.columns()
+        vals = lmap(lambda x: self.dict[x][i], cols)
+        ttype = namedtuple('row', self.columns())
+        row = ttype(*vals)
+        return row
 
 
-# class Grouper:
-#     def __init__(self, da, *cols, **opts):
-#         """This algo insists you pass in column names, no option of passing in an array
-#         Not to hard to change.
-#         """
-#
-#         groups = {}
-#         for i in range(len(da)):
-#             hash = tuple(lambda x: da[i, x], cols)
-#
-#             try:
-#                 groups[hash].append(i)
-#             except KeyError:
-#                 groups[hash] = [i]
-#
-#         self.da = da
-#         self.groups = groups
-#
-#     def get_keys(self):
-#         return list(self.groups.keys())
-#
-#     def get_indices(self, key):
-#         return self.groups[key]
-#
-#     def get_group(self, key):
-#         wh = self.get_indices(key)
-#         return self.da[wh]
-#
-#     def apply(self, func, *args, **kwargs):
-#         for k in self.get_keys():
-#             da = self.get_group(k)
-#             return func(da, *args, **kwargs)
+class Grouper:
+    def __init__(self, da, *cols, **opts):
+        """This algo insists you pass in column names, no option of passing in an array
+        Not to hard to change.
+        """
+
+        groups = {}
+        for i in range(len(da)):
+            hash = tuple(lambda x: da[i, x], cols)
+
+            try:
+                groups[hash].append(i)
+            except KeyError:
+                groups[hash] = [i]
+
+        self.da = da
+        self.groups = groups
+
+    def get_keys(self):
+        return list(self.groups.keys())
+
+    def get_indices(self, key):
+        return self.groups[key]
+
+    def get_group(self, key):
+        wh = self.get_indices(key)
+        return self.da[wh]
+
+    def apply(self, func, *args, **kwargs):
+        dflist = []
+        for k in self.get_keys():
+            da = self.get_group(k)
+            out = func(da, *args, **kwargs)
+            dalist.append(out)
+        return concat(dalist)
+
+
+def concat(*das):
+    num_da = len(das)
+    size = np.sum(npmap(len, das))
+
+    cols = {}
+    for da in das:
+        cols |= set(da.columns())
+
+    out = dict()
+    for c in cols:
+        #TODO Write a more general purpose concatenator
+        out[c] = np.concatenate(npmap(lambda x: x[c], das))
+
+    return DataArray(out)
+
+

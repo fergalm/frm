@@ -24,6 +24,7 @@ o Define acceptable datatypes
     o What operations do they support
         o slicing
         o ???
+        o list indexing col[ [1,2,3,5] ]
     o A datetime column 
     o A string column
         __getitem__(slice)
@@ -32,11 +33,10 @@ o Define acceptable datatypes
         contains -> bool array
         len  -> int array
         regex
-        + (concat)
-        
-o A list column (just a list, but allows binary indexing) 
+        + (concat)       
+    o A list column (just a list, but allows binary indexing) 
 o Metadata
-o merge
+o merge -- see merge.py
 o immutable flag
 """
 

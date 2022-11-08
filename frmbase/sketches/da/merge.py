@@ -81,6 +81,8 @@ def bisearch(arr, key, lo=0, hi=None):
 
     Requirements are that it return a list of all indices into the sorted array
     `arr` that equal key. If none are present, returns an empty list
+
+    This could be made much faster, of course
     """
     first = bisect.bisect_left(arr, key)  # first element before match
     first += 1

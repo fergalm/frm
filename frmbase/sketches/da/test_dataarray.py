@@ -51,6 +51,14 @@ def test_in_operator():
     xx = load_test_da1()
     assert 'a' in xx
     assert not 'aa' in xx
+
+
+def test_get_row():
+    xx = load_test_da1()
+    row = xx.row(0)
+    assert row.a == 0
+    assert row.b == 10
+    assert row.c == 20
 # def test_set_col():
 #     obj = da.DataArray()
 #     obj['x'] = np.arange(10)

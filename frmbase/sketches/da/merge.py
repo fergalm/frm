@@ -1,6 +1,15 @@
+from ipdb import set_trace as idebug 
+from pprint import pprint
+import numpy as np
 import bisect
 
 # Sketch of an idea for merging two dataframes
+
+def lmap(x, y):
+    return list(map(x, y))
+
+def npmap(x, y):
+    return np.array(lmap(x, y))
 
 
 def merge(
@@ -56,22 +65,32 @@ def inner_join(left, right, left_on, right_on, left_suffix, right_suffix):
 
 
 def get_keys(da, cols):
-    return NotImplementedError()
+    size = len(da)
+    out = []
+    for i in range(size):
+        row = tuple(map(lambda c: da[i, c], cols))
+        out.append(row)
+    return out 
+
 
 
 def gen_cols(left, right, left_on, right_on, left_suffix, right_suffix):
     """Generate the columns from the left and right dataarrays to copy to the merged dataarray"""
     left = set(left.columns())
     right = set(right.columns())
-    common = left & right
+    left_on = set(left_on)
+    right_on = set(right_on)
 
-    left -= common
-    right -= common
+    common = left & right - left_on
+
+    idebug()
+    left -= common 
+    right -= common | right_on
 
     right -= set(right_on)  # Don't duplicate the matching columns
     # Add back the common columns, with disambiguated names
-    left |= lmap(lambda x: x + left_suffix, common)
-    right |= lmap(lambda x: x + right_suffix, common)
+    left |= set(map(lambda x: x + left_suffix, common))
+    right |= set(map(lambda x: x + right_suffix, common))
 
     return left, right
 
@@ -85,9 +104,9 @@ def bisearch(arr, key, lo=0, hi=None):
     This could be made much faster, of course
     """
     first = bisect.bisect_left(arr, key)  # first element before match
-    first += 1
+    # first += 1
 
-    if array[first] != key:
+    if arr[first] != key:
         return []
 
     for i in range(first, len(arr)):

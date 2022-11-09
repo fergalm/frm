@@ -37,6 +37,8 @@ o Define acceptable datatypes
     o A list column (just a list, but allows binary indexing) 
 o Metadata
 o merge -- see merge.py
+    o left out and right out and cross joins
+    o unit tests
 o immutable flag
 """
 

@@ -3,6 +3,7 @@ from pprint import pprint
 import numpy as np
 import bisect
 
+from  dataarray import DataArray
 # Sketch of an idea for merging two dataframes
 
 def lmap(x, y):
@@ -34,6 +35,7 @@ def merge(
     else:
         raise ValueError(f"Join method {how} not implemented")
 
+    return da
 
 def inner_join(left, right, left_on, right_on, left_suffix, right_suffix):
     keys1 = get_keys(left, left_on)
@@ -47,7 +49,7 @@ def inner_join(left, right, left_on, right_on, left_suffix, right_suffix):
             continue
 
         for j in matches:
-            join_indices.append(i, j)  # Row i matches row j
+            join_indices.append([i, j])  # Row i matches row j
 
     join_indices = np.array(join_indices)
     ivec = join_indices[:, 0]
@@ -62,6 +64,7 @@ def inner_join(left, right, left_on, right_on, left_suffix, right_suffix):
 
     for c in right_cols:
         out[c] = right[jvec, c]
+    return DataArray(out)
 
 
 def get_keys(da, cols):
@@ -83,7 +86,7 @@ def gen_cols(left, right, left_on, right_on, left_suffix, right_suffix):
 
     common = left & right - left_on
 
-    idebug()
+    # idebug()
     left -= common 
     right -= common | right_on
 

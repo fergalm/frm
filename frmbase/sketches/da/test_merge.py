@@ -61,3 +61,13 @@ def test_gen_cols2():
     print(left, right)
     assert left == set(['a_x', 'b', 'c'])
     assert right == set(['a_y', 'd'])
+
+
+
+def test_inner_join():
+    x1 = load_test_da1()
+    x2 = load_test_da2()
+
+    df = merge.merge(x1, x2, on='a')
+    assert df.columns() == set("a b_x b_y c d".split())
+    assert len(df) == 9

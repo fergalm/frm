@@ -47,6 +47,17 @@ def test_select_by_boolean_array():
     yy = xx[idx]
     assert len(yy) == 4
 
+def test_select_by_list():
+    xx = load_test_da1()
+    sl = [0,3,6]
+    yy = xx[sl, 'a']
+    assert np.allclose(yy, [0,3,6]), yy
+
+    yy = xx[sl, ['a', 'b']]
+    return yy
+    assert np.allclose(yy, [0,3,6]), yy
+
+
 def test_in_operator():
     xx = load_test_da1()
     assert 'a' in xx

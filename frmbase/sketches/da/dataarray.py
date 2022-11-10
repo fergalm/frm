@@ -2,6 +2,9 @@ from ipdb import set_trace as idebug
 from pprint import pprint
 import numpy as np
 
+from collections import namedtuple
+from typing import Dict
+
 """
 A sketch of a lighterweight replacement to DataFrames
 
@@ -40,6 +43,7 @@ o merge -- see merge.py
     o left out and right out and cross joins
     o unit tests
 o immutable flag
+o filter method
 """
 
 
@@ -49,6 +53,8 @@ def lmap(x, y):
 def npmap(x, y):
     return np.array(lmap(x, y))
 
+class DataArray:
+    ...
 class DataArray:
     """
     Addressing
@@ -62,7 +68,7 @@ class DataArray:
 
     Setting should work for all these operations too.
     """
-    def __init__(self, src:dict = None, meta:dict[str,str]=None):
+    def __init__(self, src:dict = None, meta:Dict[str,str]=None):
         self.meta = None or meta
 
         if src is None:
@@ -101,8 +107,8 @@ class DataArray:
         elif len(key) == 2:
             col = key[1]
 
-            if col == ':':
-                col = self.columns()  #colon implies all columns
+            if col == slice(None, None, None):
+                col = list(self.columns())  #colon implies all columns
             sl = key[0]
             tmp = self.__getitem__(col)
             return tmp.__getitem__(sl)
@@ -122,16 +128,21 @@ class DataArray:
         #     sl = key[0]
         #     self.dict[col][sl] = value
 
-    def columns(self):
+    def columns(self) -> set:
         #Maybe a list?
         return set(self.dict.keys())
 
-    def select(self, *cols):
+    def select(self, *cols) -> DataArray:
         return self._get_column_subset(cols)
 
-    def copy(self):
+    def filter(self, predicate) -> DataArray:
+        raise NotImplementedError()
+
+    def copy(self) -> DataArray:
+        data = {}
         for c in self.columns():
-            self.dict[c] = self.dict[c].copy()  #May not be general enough
+            data[c] = self.dict[c].copy()  #May not be general enough
+        return DataArray(data)
 
     def _get_column_subset(self, cols):
         src = dict()
@@ -146,9 +157,8 @@ class DataArray:
         return DataArray(src)
 
 
-    def row(self, i):
+    def row(self, i) ->namedtuple:
         """This looks very slow..."""
-        from collections import namedtuple
         cols = self.columns()
         vals = lmap(lambda x: self.dict[x][i], cols)
         ttype = namedtuple('row', self.columns())
@@ -164,7 +174,10 @@ class Grouper:
 
         groups = {}
         for i in range(len(da)):
-            hash = tuple(lambda x: da[i, x], cols)
+            if len(cols) == 1:
+                hash = da[i,cols[0]]
+            else:
+                hash = tuple(map(lambda x: da[i, x], cols))
 
             try:
                 groups[hash].append(i)
@@ -182,7 +195,8 @@ class Grouper:
 
     def get_group(self, key):
         wh = self.get_indices(key)
-        return self.da[wh]
+        # idebug()
+        return self.da[wh, :]
 
     def apply(self, func, *args, **kwargs):
         dflist = []

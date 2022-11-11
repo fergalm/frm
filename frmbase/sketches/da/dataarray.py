@@ -105,13 +105,22 @@ class DataArray:
             else:
                 return self.dict[key[0]]
         elif len(key) == 2:
+            sl = key[0]
             col = key[1]
 
             if col == slice(None, None, None):
                 col = list(self.columns())  #colon implies all columns
-            sl = key[0]
-            tmp = self.__getitem__(col)
-            return tmp.__getitem__(sl)
+
+            tmp = self._get_slice(sl)
+            tmp = tmp.__getitem__(col)
+            # if isinstance(sl, list):
+            #     tmp = self._get_slice(sl)
+            #     tmp = tmp.__getitem__(col)
+            # else:
+            #     #Is this branch necessary?
+            #     tmp = self.__getitem__(col)
+            #     tmp = tmp.__get_slice__(sl)
+            return tmp
         else:
             raise ValueError("Too many dimensions")
 
@@ -151,6 +160,8 @@ class DataArray:
         return DataArray(src)
 
     def _get_slice(self, sl):
+        if isinstance(sl, int):
+            sl = [sl]  #Prevents slicing from returning a scalar
         src = dict()
         for c in self.columns():
             src[c] = self.dict[c][sl]

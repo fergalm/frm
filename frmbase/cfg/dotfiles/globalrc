@@ -1,0 +1,218 @@
+# Set of aliases and commands common to all the machines I use. Change
+# this file once, and copy it to all places where you'll want it.
+# Then in your .bashrc file, set your path, manpath and ld_library_path
+# and source this file
+
+# As I ported this to bash, I commented out stuff I didn't think I needed
+
+ #
+ # Set up useful personal aliases
+ #
+alias   back='cd $OLDPWD'
+alias   df='df -h'
+alias   pu=pushd
+alias   po=popd
+alias	man='man -a'
+alias   lsd='ls -d `find . -maxdepth 1 -type d `'
+alias   lsc='ls --indicator-style=none --color=none'
+alias   ls='ls -F --color=tty'
+alias   deblank='grep --color=none "\w" $* '
+alias   decolon="sed 's/:/\n/g' <<< $*"
+alias   wx='curl weather.as.utexas.edu/latest_5min.dat'
+alias   grep='grep --color=auto'
+alias   vv='vi -R'
+#I might need to turn this into a function
+alias   oisphinx='sphinx-build -b html -c docs docs docs/build'
+
+#Toggle between wide and normal width xterms
+#alias lsstbig="resize -s $LINES 120 > /dev/null"
+
+
+ #
+ # Delete and Undelete function
+ #
+function dl()
+{	mv $* ~/.undelete
+}
+
+function undel()
+{
+	for file in $*
+	do
+		mv -v ~/.undelete/$file .
+	done
+}
+
+function xgrep()
+{
+    grep="grep -n --colour=always"
+    #echo "$1 $2 $# $grep"
+
+    if [ $# -eq 1 ]
+    then
+        find . | xargs $grep $1
+        return
+    fi
+
+    if [ $# -eq 2 ]
+    then
+        #echo "find . -name $1 | xargs $grep $2"
+        find . -name "$1" | xargs $grep $2
+        return
+    fi
+
+    #If we get to here, we've exhausted our options
+    echo "Find strings in text files"
+    echo "Usage: xgrep [type] string"
+    echo "string: The string to search for e.g printf"
+    echo "type: Which files to search, e.g '*.c'"
+}
+
+
+function dday()
+{
+    calc "($1-$2)*86400"
+}
+
+
+function append()
+{
+    if [ $# != 2 ]
+    then
+        echo "Usage: append VARIABLE text"
+        echo "e.g append PATH /home/user/newprog/bin"
+        return
+    fi
+
+    var=$1
+    eval val=\$$1
+    str=$2
+
+    eval $var=$val:$str
+    echo $var=$val:$str | sed 's/:/\n/g'
+}
+
+
+function gitrm()
+{
+    if [ $# != 1 ]
+    then
+        echo "Usage gitrm directory"
+        return
+    fi
+    
+    path=$1
+    if [ ! -e $path/.git ]
+    then
+        echo "$path is not a git repo"
+        return
+    fi
+    
+    rm -rf $path/.git
+    rm -r $path
+}
+
+ #
+ # Define some aliases for network services
+ #
+ ##Texas machines
+#alias   grad26='ssh -fX grad26.as.utexas.edu xterm -fg black -bg white -bd blue -T Grad26 -ls'
+
+#House machines
+alias   dunalmu='ssh -fX dunalmu xterm -bd purple -sb -T Dunalmu -ls'
+
+
+#
+# Priceton machines
+#
+alias lsstdev='ssh -fX lsstdev.ncsa.uiuc.edu xterm -bd cyan -sb -T Lsstdev -ls'
+
+
+#Kepler machines
+alias lios='ssh -fAXY fmullall@flux ssh -fAXY fmullall@lios konsole'
+alias flux='ssh -fXY fmullall@flux.amn.nasa.gov xterm -fg black -bg white -bd red -ls'
+alias juno='ssh -fXY fmullall@juno.amn.nasa.gov xterm -fg black -bg white -bd red -ls'
+alias murzim='ssh -fXY fmullall@murzim.amn.nasa.gov xterm -fg black -bg white -bd red -ls'
+alias gopc='ssh -fAXY fmullall@gopc.amn.nasa.gov xterm -fg black -bg white -bd green -ls'
+
+
+ #
+ # setup the Environment variables
+ #
+umask 002
+export SHELL=$BASH
+
+EDITOR=/bin/nano
+VISUAL=/bin/nano
+PAGER=/bin/less
+LESS="MiRg"
+#Use system defaults for MANPATH
+MANPATH=:
+export LESS
+
+#
+# Bash settings
+#
+export HISTCONTROL=ignorespace:ignoredups:erasedups
+shopt -s checkhash
+shopt -s checkwinsize
+shopt -s histappend
+shopt -s no_empty_cmd_completion
+
+#Ignore hidden directories when command completing
+bind 'set match-hidden-files off'
+
+#Makes Ctrl+D less likely to close your shell
+IGNOREEOF=10
+
+#Increase the size of the history file
+HISTSIZE=10000
+HISTFILESIZE=100000
+
+
+#Location of latex files
+export TEXINPUTS=$TEXINPUTS:$HOME/utils/latex
+
+
+#SVN stuff
+export SVN_EDITOR=nano
+alias svnps='svn ps svn:keywords "Id URL" $*'
+
+function svnrm
+{
+    if [ $# = 0 ]
+    then
+        echo Remove a local copy of an svn directory
+        echo Usage svnrm path
+        return
+    fi
+
+    for d in $*
+    do
+        find $d -name '.svn' -type d | xargs rm -rf &&
+        rm -r $d
+    done
+}
+export -f svnrm
+
+#Set ls colours
+LS_COLORS='no=00:fi=00:di=00;34:ex=32:ln=00;36:pi=40;33:so=00;35:do=00;35:bd=40;33;00:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:*.tar=00;31:*.tgz=00;31:*.arj=00;31:*.taz=00;31:*.lzh=00;31:*.zip=00;31:*.z=00;31:*.Z=00;31:*.gz=00;31:*.bz2=00;31:*.deb=00;31:*.rpm=00;31:*.jar=00;31:*.jpg=00;35:*.jpeg=00;35:*.gif=00;35:*.bmp=00;35:*.pbm=00;35:*.pgm=00;35:*.ppm=00;35:*.tga=00;35:*.xbm=00;35:*.xpm=00;35:*.tif=00;35:*.tiff=00;35:*.png=00;35:*.mov=00;35:*.mpg=00;35:*.mpeg=00;35:*.avi=00;35:*.fli=00;35:*.gl=00;35:*.dl=00;35:*.xcf=00;35:*.xwd=00;35:*.flac=00;35:*.mp3=00;35:*.mpc=00;35:*.ogg=00;35:*.wav=00;35:';
+export LS_COLORS
+
+
+
+#Usually I want the title bar of my xterm to show my current path.
+#However, if I'm at a terminal, this just produces extra unwanted characters
+#on every prompt. Instead I want to issue a pwd after every command
+PS1='Lugh ${PWD/$HOME/~}> '
+if [ $TERM = "xterm" ]
+then
+    PROMPT_COMMAND='echo -ne "\033]0;$HOSTNAME: ${PWD/$HOME/~}\007"'
+fi
+
+if [ $TERM = "term" ] || [ $TERM = "linux" ]
+then
+    PROMPT_COMMAND='pwd'
+fi
+
+

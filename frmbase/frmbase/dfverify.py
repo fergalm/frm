@@ -5,8 +5,6 @@ import numpy as np
 """
 sketch code for some data validation pipeline steps.
 
-THIS CODE HASN'T BEEN RUN YET, LET ALONG TESTED
-
 These steps check that the values in a column in a dataframe are sane, i.e
 * Most values are finite
 * Most values are in some range 
@@ -14,7 +12,33 @@ These steps check that the values in a column in a dataframe are sane, i.e
 
 The can be run by passing them to the `runPipline` function in dfpipline
 
+By convention, all verification steps should raise ValueError if they find a problem
 """
+
+class VerifyColExists(dfp.AbstractStep):
+    def __init__(self, *cols):
+        self.cols = cols
+
+    def apply(self, df):
+        if set(df.columns) >= set(self.cols):
+            return df
+
+        missing = set(self.cols) - set(df.columns)
+        msg = "Some required keys missing from dataframe. Keys %s\nmissing from\n%s" % (
+            missing,
+            df.columns,
+        )
+        raise ValueError(msg)
+
+
+class VerifyNotEmpty(dfp.AbstractStep):
+    def apply(self, df):
+        if len(df) == 0:
+            raise ValueError("No rows in dataframe")
+
+        if len(df.columns) == 0:
+            raise ValueError("No columns in dataframe")
+        return df
 
 
 class VerifyIsFinite(dfp.AbstractStep):

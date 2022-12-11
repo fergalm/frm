@@ -3,7 +3,7 @@ from pprint import pprint
 import numpy as np
 
 from collections import namedtuple
-from typing import Dict
+from typing import Dict, Iterable
 
 """
 A sketch of a lighterweight replacement to DataFrames
@@ -20,7 +20,7 @@ the class is much smaller, easier to maintain, and more flexible.
 Todo
 -----
 o Implement setters
-o Groupers -- untested
+x Groupers 
 x row() to return a named tuple?
 
 o Define acceptable datatypes
@@ -113,13 +113,6 @@ class DataArray:
 
             tmp = self._get_slice(sl)
             tmp = tmp.__getitem__(col)
-            # if isinstance(sl, list):
-            #     tmp = self._get_slice(sl)
-            #     tmp = tmp.__getitem__(col)
-            # else:
-            #     #Is this branch necessary?
-            #     tmp = self.__getitem__(col)
-            #     tmp = tmp.__get_slice__(sl)
             return tmp
         else:
             raise ValueError("Too many dimensions")
@@ -186,9 +179,9 @@ class Grouper:
         groups = {}
         for i in range(len(da)):
             if len(cols) == 1:
-                hash = da[i,cols[0]]
+                hash = da[i,cols[0]][0]
             else:
-                hash = tuple(map(lambda x: da[i, x], cols))
+                hash = tuple(map(lambda x: da[i, x][0], cols))
 
             try:
                 groups[hash].append(i)
@@ -217,6 +210,19 @@ class Grouper:
             dalist.append(out)
         return concat(dalist)
 
+
+def validate_col(col: Iterable):
+    """Check the input """
+    n = len(col) - 1
+    try:
+        col[n]
+        col[:n]
+        col[[0,n]]
+        idx = np.ones(len(col), dtype=bool)
+        col[idx]
+    except IndexError:
+        return False 
+    return True
 
 def concat(*das):
     num_da = len(das)

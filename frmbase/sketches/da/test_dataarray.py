@@ -20,10 +20,23 @@ def test_get_col():
 def test_get_slice():
     xx = load_test_da1()
     col = xx[:4, 'a']
+    # idebug()
     assert np.allclose(col, np.arange(4))
 
     col = xx[2:6, 'a']
     assert np.allclose(col, np.arange(2,6))
+
+
+def test_select_one_row():
+    xx = load_test_da1()
+    yy = xx[0, 'c']
+    assert isinstance(yy, np.ndarray)
+    assert len(yy) == 1 
+
+    yy = xx[0, ['b', 'c']]
+    assert isinstance(yy, da.DataArray)
+    assert len(yy) == 1 
+
 
 def test_select_multiple_cols():
     xx = load_test_da1()
@@ -51,11 +64,16 @@ def test_select_by_list():
     xx = load_test_da1()
     sl = [0,3,6]
     yy = xx[sl, 'a']
+    print(yy)
     assert np.allclose(yy, [0,3,6]), yy
 
+def test_select_by_two_lists():
+    xx = load_test_da1()
+    sl = [0,3,6]
     yy = xx[sl, ['a', 'b']]
-    return yy
-    assert np.allclose(yy, [0,3,6]), yy
+
+    assert len(yy) == len(sl)
+    assert yy.columns() == set(['a', 'b']), yy
 
 
 def test_in_operator():

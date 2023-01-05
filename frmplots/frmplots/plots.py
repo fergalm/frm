@@ -196,6 +196,8 @@ def borderplot(x, y, *args, **kwargs):
         in the x and y directions. Is passed directly to `plt.hist`
     color
         (matplotlib colour specification
+    func
+        (function) What function is used to draw main panel. Default is plt.plot
 
     All other options are passed to `plt.plot`
 

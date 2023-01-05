@@ -57,6 +57,7 @@ def test_gen_cols2():
     x1 = load_test_da1()
     x2 = load_test_da2()
 
+    # idebug()
     left, right = merge.gen_cols(x1, x2, ['a'], ['b'], "_x", "_y" )
     print(left, right)
     assert left == set(['a_x', 'b', 'c'])

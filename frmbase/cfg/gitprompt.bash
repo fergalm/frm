@@ -19,11 +19,10 @@
 #PROMPT_COMMAND=source gitprompt.bash
 
 #The default prompt for when you are not in a git repo
-DEFAULT_PROMPT="Lugh $CONDA_PROMPT_MODIFIER \W> "
+DEFAULT_PROMPT="Lios $CONDA_PROMPT_MODIFIER \W> "
 
 bold=$(tput bold)
 normal=$(tput sgr0)
-
 
 branch=`git branch 2>/dev/null`
 if [ -z "$branch" ]

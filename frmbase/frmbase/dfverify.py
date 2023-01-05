@@ -1,3 +1,4 @@
+import pandas as pd
 from ipdb import set_trace as idebug
 import frmbase.dfpipeline as dfp
 import numpy as np
@@ -19,7 +20,7 @@ class VerifyColExists(dfp.AbstractStep):
     def __init__(self, *cols):
         self.cols = cols
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
         if set(df.columns) >= set(self.cols):
             return df
 
@@ -32,7 +33,7 @@ class VerifyColExists(dfp.AbstractStep):
 
 
 class VerifyNotEmpty(dfp.AbstractStep):
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
         if len(df) == 0:
             raise ValueError("No rows in dataframe")
 
@@ -61,12 +62,20 @@ class VerifyIsFinite(dfp.AbstractStep):
         if max_num is None and max_frac is None:
             self.max_num = 0  # Default is to accept no Nans
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
         size = len(df)
         msg = []
+
+        if len(self.col_list) == 0:
+            self.col_list = df.columns
+
         for col in self.col_list:
-            num = np.sum(~np.isfinite(df[col]))
-            # idebug()
+            try:
+                num = np.sum(~np.isfinite(df[col]))
+            except TypeError:
+                #Not numeric, therefore has no nans
+                continue
+
             if self.max_num is not None and num > self.max_num:
                 msg.append(
                     f"{num} non-finite values found in col '{col}' (limit is {self.max_num})"
@@ -79,6 +88,7 @@ class VerifyIsFinite(dfp.AbstractStep):
         if len(msg) > 0:
             msg = "\n".join(msg)
             raise ValueError(msg)
+        return df
 
 
 class VerifyInRange(dfp.AbstractStep):
@@ -113,7 +123,7 @@ class VerifyInRange(dfp.AbstractStep):
         if max_num is None and max_frac is None:
             self.max_num = 0  # Default is to accept no Nans
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
         size = len(df)
         msg = []
         for col in self.col_list:
@@ -152,7 +162,7 @@ class VerifyFuncInRange(dfp.AbstractStep):
         self.lwr = lwr
         self.upr = upr
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
         size = len(df)
         msg = []
         for col in self.col_list:

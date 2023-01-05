@@ -23,6 +23,8 @@ alias   grep='grep --color=auto'
 alias   vv='vi -R'
 #I might need to turn this into a function
 alias   oisphinx='sphinx-build -b html -c docs docs docs/build'
+alias   envinit='python ~/bin/envinit.py > .tmp; source .tmp; rm .tmp'
+alias   ipy='$CONDA_PREFIX/bin/ipython --pylab'
 
 #Toggle between wide and normal width xterms
 #alias lsstbig="resize -s $LINES 120 > /dev/null"
@@ -122,6 +124,9 @@ function gitrm()
 alias   dunalmu='ssh -fX dunalmu xterm -bd purple -sb -T Dunalmu -ls'
 
 
+export PYTHONPATH=""
+
+
 #
 # Priceton machines
 #
@@ -169,6 +174,8 @@ IGNOREEOF=10
 HISTSIZE=10000
 HISTFILESIZE=100000
 
+#Run git prompt
+export PROMPT_COMMAND="source $HOME/bin/gitprompt.bash"
 
 #Location of latex files
 export TEXINPUTS=$TEXINPUTS:$HOME/utils/latex

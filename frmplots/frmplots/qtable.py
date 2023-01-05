@@ -102,6 +102,9 @@ class QTable():
         for i, key in enumerate(df.columns):
             col = df[key]
             for j, elt in enumerate(col):
+                if elt is None:
+                    item = QItem(" ")
+                    continue
                 try:
                     item = QItem("%g"% (elt))
                 except TypeError:
@@ -125,7 +128,8 @@ class QTable():
 
             for j in range(self.ncol):
                 item = self.table.item(i, j)
-                item.setBackground(clr)
+                if item is not None:
+                    item.setBackground(clr)
 
     def toggleColumn(self, sender_label, state):
         cols = self.df.columns

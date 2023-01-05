@@ -345,6 +345,9 @@ def mark_indices(x_data, y_axis, *args, **kwargs):
     references to axis coords. This provides a kind of heads-up-display
     for when a binary event occurs (e.g a flag being raised on bad data)
     """
+    if not hasattr(y_axis, 'len'):
+        y_axis = y_axis + np.zeros_like(x_data, dtype=float)
+        
     ax = plt.gca()
     trans = mtrans.blended_transform_factory(ax.transData, ax.transAxes)
     return ax.plot(x_data, y_axis, *args, transform=trans, **kwargs)
@@ -537,6 +540,18 @@ def plot_with_discrete_cb(func, *args, **kwargs):
     function_handle = func(*args, **kwargs)
     cb_handle = plt.colorbar(format=tick_format)
     return function_handle, cb_handle
+
+from frmbase.plateau import plateau
+def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
+    if gap_size is None:
+        gap_size = .01 * (np.max(x) - np.min(x))
+
+    diff = np.diff(x)
+    peaks = plateau(diff > gap_size, .5)
+    peaks = np.concatenate([[int(0)], peaks.flatten(), [int(len(x))]]).reshape(-1, 2).astype(int)
+    for p in peaks:
+        lwr, upr = p
+        plt.plot(x[lwr:upr], y[lwr:upr], *args, **kwargs)
 
 
 def save_figfile(filename):

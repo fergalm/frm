@@ -104,3 +104,47 @@ def chloropleth(polygons, values, **kwargs):
     plt.sca(ax)
 
     return pc, cb
+
+
+
+
+def plot_shape(shape, *args, **kwargs):
+    """Plot the outline of a shape
+
+    Inputs
+    ------------
+    shape
+        Ogr geometry object. Can be any single Ogr object (e.g a point,
+        a line, or a polygon). Only really tested on ploygons
+        and multi-polygons
+
+    Optional Inputs
+    --------------
+    Passed directly to `matplotlib.pyplot.plot`
+
+    Returns
+    -------------
+    **None**
+
+    Output
+    ---------
+    Draws to the current matplotlib axis
+    """
+
+#    import ipdb; ipdb.set_trace()
+    #shape = ogrGeometryToArray(shape)
+    shape = AnyGeom(shape).as_array()[1]
+    if isinstance(shape, np.ndarray) and shape.size == 0:
+        return #empty geom
+
+    if isinstance(shape, list):
+        out = []
+        for region in shape:
+            if isinstance(region, list):
+                region = region[0]
+            handle = plt.plot(region[:,0], region[:,1], *args, **kwargs)
+            out.append(handle)
+        return out
+    else:
+        shape = np.atleast_2d(shape)
+        return plt.plot(shape[:,0], shape[:,1], *args, **kwargs)

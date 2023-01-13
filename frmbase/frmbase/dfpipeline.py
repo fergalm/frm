@@ -89,6 +89,7 @@ class ApplyFunc(AbstractStep):
 
 class AssertColExists(AbstractStep):
     def __init__(self, *cols):
+        warnings.warn("Use dfverify.VerifyColExists", DeprecationWarning, stacklevel=2)
         self.cols = cols
 
     def apply(self, df):
@@ -104,6 +105,9 @@ class AssertColExists(AbstractStep):
 
 
 class AssertNotEmpty(AbstractStep):
+    def __init__(self):
+        warnings.warn("Use dfverify.VerifyNotEmpty", DeprecationWarning, stacklevel=2)
+
     def apply(self, df):
         assert len(df) > 0, "No rows in dataframe"
         assert len(df.columns) > 0, "No columns in dataframe"

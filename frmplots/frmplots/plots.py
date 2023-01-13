@@ -545,11 +545,29 @@ def plot_with_discrete_cb(func, *args, **kwargs):
 
 from frmbase.plateau import plateau
 def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
+    """Plot a timeseries skipping over any gaps.
+    Useful for linecharts where the x values are not regularly spaced.
+    Inputs
+    -------
+    same as plt.plot except for the keyword argument gap_size
+    If the difference between two values in x[] are larger than gapsize
+    then no connector is drawn between them.
+
+    The default gapsize is 1% the span of the data
+    Note
+    ------
+    If the x value is in datetime format, gap_size should be be pd.to_timedelta()
+    object
+    """
     if gap_size is None:
         gap_size = .01 * (np.max(x) - np.min(x))
 
     diff = np.diff(x)
+    #casting works around issues with dates
+    # peaks = plateau(diff.astype(float) > gap_size, .5)
     peaks = plateau(diff > gap_size, .5)
+    # import ipdb; ipdb.set_trace()
+
     peaks = np.concatenate([[int(0)], peaks.flatten(), [int(len(x))]]).reshape(-1, 2).astype(int)
     for p in peaks:
         lwr, upr = p

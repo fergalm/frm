@@ -258,12 +258,13 @@ class Load(AbstractStep):
     A Pandas dataframe
     """
 
-    def __init__(self, pattern, loader=None, add_src=True, **kwargs):
+    def __init__(self, pattern, loader=None, n=None, add_src=True, **kwargs):
         """
         """
         self.pattern = pattern
         self.loader = loader
         self.add_src = kwargs.pop('source', False)
+        self.num = n
         self.kwargs = kwargs
         self.opts = {
             'csv': pd.read_csv,
@@ -277,6 +278,9 @@ class Load(AbstractStep):
         loader = self.get_loader(self.loader, flist)
 
         def load(fn):
+            if self.num is not None:
+                fn = self.head(fn, self.num)
+
             try:
                 df = loader(fn, **self.kwargs)
             except Exception as e:
@@ -288,6 +292,16 @@ class Load(AbstractStep):
 
         dflist = list(map(load, flist))
         return pd.concat(dflist)
+
+    def head(self, fn, num):
+        buffer = []
+        with open(fn) as fp:
+            for i in range(num+1):
+                buffer.append(fp.readline())
+        
+        from io import StringIO 
+        fout = StringIO("\n".join(buffer))
+        return fout 
 
     def get_filelist(self, pattern):
         flist = glob(pattern)

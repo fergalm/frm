@@ -3,7 +3,14 @@ numpy
 scipy
 pandas
 matplotlib
+requests
 ipython
 pytest
+pytest-cov
+fsspec
 tqdm
-#conda-forge::ipdb
+toml
+colorama
+tabulate  
+gitpython
+#conda-forge::ipdb  #Try -c conda-forge

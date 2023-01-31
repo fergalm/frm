@@ -25,8 +25,13 @@ class AbstractSpectrumCollection():
     
     
 def Bsl02(AbstractSpectrumCollection):
+    """
+    Exoplanet atmosphere models from 
+    Burrows, Sudarsky & Luninie (2002)
+    """
+    
     def __init__(self, path=None):
-        AbstractSpectrumCollection.__init__(path, "spec_mods/bsl02/*")
+        AbstractSpectrumCollection.__init__(path, "spec_mods/bsl/*")
         self.df = self.getModelList()
 
     def getModelList(self) -> pd.DataFrame:

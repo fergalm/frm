@@ -1,0 +1,29 @@
+The original file from which I created the 2 column format spectrum
+
+For Sloan filters, data taken from http://cochiguaz.lco.cl/~gmartin/instr_operations/filters/opt_filters.html (not an official source)
+
+Johnson I taken from http://www.ctio.noao.edu/telescopes/1m/filters/i_yalo.txt
+
+
+WISE filters from
+http://wise2.ipac.caltech.edu/docs/release/prelim/expsup/sec4_3g.html#WISEZMA
+(see Fig 4a)
+
+
+#Galex from
+http://galexgi.gsfc.nasa.gov/docs/galex/Documents/PostLaunchNUVImagingResponseCurves.htm
+These curves are in effective area, for some reason.
+http://www.astro.caltech.edu/~capak/cosmos/filters/index.html
+Gives "QE" curves, so I use these values to normalise from cm^2 to fraction
+of light recorded
+
+fuv *= .3507/34.0988
+nuv *= .5622/56.218399047852
+
+tail -n +2 galexnuv.txt  | awk '{print $1*1e-10, $2*.5622/56.218399047852}' > ../galexnuv.txt
+
+
+#JWST nircam filters are at 
+https://jwst-docs.stsci.edu/jwst-near-infrared-camera/nircam-instrumentation/nircam-filters#NIRCamFilters-filt_trans
+I've only downloaded a couple. Convert to std format with
+tail -n +2 F410M_mean_system_throughput.txt | awk '{print $1/1e6, $2}' > ../nircam-F410M.dat

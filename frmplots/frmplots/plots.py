@@ -13,6 +13,27 @@ How to have dates on the colour bar axis
     date_num = list(map(date2num, dates))
     plt.scatter(x, y, c=date_num)
     plt.colorbar(format=DateFormatter("%Y-%m-%d"))
+    
+    
+    
+How to change the date format in the toolbar of an interactive plot
+
+::
+    import matplotlib.dates as mdate
+    def foo(x):
+        return mdate.num2date(x).isoformat()[:19]
+
+
+    def main():
+        ...
+        ax = plt.gca()
+        ax.fmt_xdata = foo
+        
+There is another function pointer called fmt_ydata for the y data format
+An exercise is to figure out 
+
+* How to check if the x axis is plotting dates or not 
+* How to set this up in the rcParams
 
 """
 

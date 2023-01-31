@@ -1,0 +1,18 @@
+python==3.8
+numpy
+scipy
+pandas
+matplotlib
+requests
+ipython
+pytest
+pytest-cov
+fsspec
+tqdm
+toml
+colorama
+tabulate  
+gitpython
+#conda-forge::ipdb  #Try -c conda-forge
+pycodestyle
+flake8

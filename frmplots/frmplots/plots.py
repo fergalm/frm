@@ -695,7 +695,7 @@ def save_figfile(filename):
         pickle.dump(fig, fp)
 
 
-def shadow():
+def shadow(**kwargs):
     """Add a drop-shadow to a line or some text 
 
     See also outline()
@@ -707,7 +707,7 @@ def shadow():
     See https://matplotlib.org/stable/tutorials/advanced/patheffects_guide.html
     """
 
-    return [meffect.SimpleLineShadow(), meffect.Normal()]
+    return [meffect.SimpleLineShadow(**kwargs), meffect.Normal()]
 
 
 def text_at_axis_coords(x, y, text, *args, **kwargs):

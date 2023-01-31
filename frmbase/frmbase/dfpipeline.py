@@ -277,6 +277,11 @@ class Load(AbstractStep):
             'xls': pd.read_excel,
         }
 
+    def __str__(self):
+        classname = str(self.__class__)[:-2].split()[-1][1:]
+        strr = f"<{classname} on {self.pattern}>"
+        return strr
+
     def apply(self, df=None):
         flist = self.get_filelist(self.pattern)
         loader = self.get_loader(self.loader, flist)
@@ -457,6 +462,22 @@ class SetCol(AbstractStep):
         predicate = parsePredicate(df.columns, self.predicate)
         #1/0
         df[self.col] = eval(predicate)
+        return df
+
+
+class SetColByFunc(AbstractStep):
+    """I think I should find a way to merge this class into SetCol.
+    
+    Also, there's a better version of this function lieing around somewhere
+    """
+    def __init__(self, col, func, *args, **kwargs):
+        self.func = func 
+        self.col = col 
+        self.args = args 
+        self.kwargs = kwargs 
+
+    def apply(self, df):
+        df[self.col] =  self.func(df, *self.args, **self.kwargs)
         return df
 
 class SetDayNum(AbstractStep):

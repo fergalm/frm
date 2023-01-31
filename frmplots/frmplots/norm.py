@@ -169,11 +169,15 @@ class FixedDiscreteNorm(DiscreteNorm):
     """Set the boundaries between the colours directly"""
     def __init__(self, boundaries, vmin=None, vmax=None, clip=False):
         self.mclip = clip
-        self.mvmin = vmin
-        self.mvmax = vmax
+        self.mvmin = vmin or np.min(boundaries)
+        self.mvmax = vmax or np.max(boundaries)
         self.bounds = np.array(boundaries)
         self.ncolors = len(boundaries)
 
+    def computeBoundaries(self, x=None):
+        return self.bounds
+
+        
 class PercentileNorm(DiscreteNorm):
     """Not tested"""
     def __init__(self, levels, vmin=None, vmax=None, clip=False):

@@ -177,15 +177,24 @@ class FixedDiscreteNorm(DiscreteNorm):
 class PercentileNorm(DiscreteNorm):
     """Not tested"""
     def __init__(self, levels, vmin=None, vmax=None, clip=False):
+        DiscreteNorm.__init__(self, levels, vmin, vmax, clip)
         self.mclip = clip
         self.mvmin = vmin
         self.mvmax = vmax
+
+        if isinstance(levels, int):
+            levels = np.linspace(0, 100, levels+1)
         self.pct_levels= levels
+
 
     def computeBoundaries(self, x):
         eps = np.finfo(np.float32).eps
         x = np.array(x)  #Strip out array masking if necessary
-        x = x[ (x >= self.mvmin) & (x <= self.mvmax)]
+
+        vmin = self.mvmin or np.min(x)
+        vmax = self.mvmax or np.max(x)
+
+        x = x[ (x >= vmin) & (x <= vmax)]
 
         boundaries = np.percentile(x, self.pct_levels)
         boundaries[-1] += eps
@@ -240,6 +249,7 @@ class HistEquNorm(DiscreteNorm):
         x = x[ (x >= self._vmin) & (x <= self._vmax)]
         boundaries = np.percentile(x, thresholds)
         boundaries[-1] += eps
+        import ipdb; ipdb.set_trace()
 
         boundaries = fixEqualValueBoundaries(boundaries)
         assert np.all(np.diff(boundaries) > 0), "Logic Error"

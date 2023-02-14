@@ -13,6 +13,8 @@ toml
 colorama
 tabulate  
 gitpython
-#conda-forge::ipdb  #Try -c conda-forge
 pycodestyle
 flake8
+black
+autopep8
+#conda-forge::ipdb  #Try -c conda-forge

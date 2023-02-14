@@ -151,6 +151,7 @@ class Logger:
     def error(self, msg):
         self.write(ERROR, msg)
 
+
     def setLevel(self, level):
         self.level = level
 
@@ -170,6 +171,10 @@ class Logger:
         msg = str(exc)
         msg = msg + "\n" + traceback.format_exc()
         self.write(level, msg)
+
+    #Mneumonc for log_exception
+    def exception(self, exc):
+        self.log_exception(exc)
 
     def write(self, level, msg):
         if level > self.level:

@@ -595,6 +595,120 @@ def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
         plt.plot(x[lwr:upr], y[lwr:upr], *args, **kwargs)
 
 
+def ternary(v1, v2, v3, labels=None, **kwargs):
+    """Create a ternary plot
+
+    https://en.wikipedia.org/wiki/Ternary_plot
+
+    A ternay plot is basically a 2d representation of a plane in
+    3 dimensions. For each element of the three input vector, the
+    sum of `v1[i] + v2[i] + v3[i] == 1`
+
+    Inputs
+    --------
+    v1, v2, v3 (1d arrays)
+        Values to plot. v1[i] + v2[i] + v3[i] == 1 for all values of i,
+        and 0 <= vj[i] <= 1 for all values of i,j
+    labels (list of strings)
+        Text to annotate the 3 corners of the triangle.
+
+    Optional Arguments
+    ----------------------
+    decorate (bool)
+        If **True**, some helpful contour lines are drawn on the plot
+
+    All other optional arguments are passed to plt.scatter
+
+    Notes
+    --------
+    The solid horizontal lines drawn by decorate indicate the strength
+    of vector 1. The dashed lines indicate the relative strength
+    of vector 3 over vector 2. This was useful for my first use case,
+    and may not make sense in other use cases.
+
+    """
+    assert len(v1) == len(v2)
+    assert len(v2) == len(v3)
+
+    for v in [v1, v2, v3]:
+        assert 0 <= np.min(v) and  np.max(v) <= 1
+    assert np.allclose(v1 + v2 +v3, 1)
+
+    if labels is None:
+        labels = ["Vector 1", "Vector 2", "Vector 3"]
+    assert len(labels) == 3
+
+    want_decoration = kwargs.pop('decorate', False)
+
+    #Draw and label the triangle
+    x = [-.5, 0, .5, -.5]
+    y = [0, np.sqrt(3)/2., 0, 0]
+    plt.plot(x, y, 'k-', lw=2, zorder=-1)
+
+    plt.text(0, .866, "  " + labels[0], ha="left", fontsize=18)
+    plt.text(.5, -.05, labels[1], ha="center", fontsize=18)
+    plt.text(-.5,-.05, labels[2], ha="center", fontsize=18)
+
+    #Mark the points
+    coords = _compute_ternary_coords(v1, v2, v3)
+    plt.scatter(coords[:, 0], coords[:, 1], **kwargs)
+
+    #Scale and hide the axis.
+    plt.axis('equal')
+    plt.axis('off')
+
+    if want_decoration:
+        _decorate_ternary_plot(labels)
+
+
+def _compute_ternary_coords(a, b, c):
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+    # #Convert pandas series to numpy arrays if necessary
+    # try:
+    #     a = a.values
+    #     b = b.values
+    #     c = c.values
+    # except AttributeError:
+    #     pass
+
+    root3 = np.sqrt(3)
+    y = root3 * a / 2.
+    x = .5 * (b-c)
+    return np.vstack([x,y]).transpose()
+
+def _decorate_ternary_plot(labels):
+    #Draw horizontal lines
+    for zz in [.25, .5, .75]:
+        zy = (np.sqrt(3)/2 * (zz))
+        zx = .5*(1-zz)
+        print(zz, zx, zy)
+        plt.text(zx, zy, " %.0f%% %s" %(100*zz, labels[0]))
+
+        plt.plot([-zx, zx], [zy, zy], '-', color='grey', lw=.5)
+        plt.xlim(xmax=.6)
+
+    #Draw diagonal lines
+    # for zz in [.25, .5, .75]:
+    #     zx = -.5 + zz
+    #     zy = 0
+    #     # plt.plot([zx, zx], [zy, zy+.01], 'k-')
+    #     plt.plot([0, zx], [.866, 0], 'k-', lw=1, ls="--", zorder=-2)
+    #     text = "%i%% %s" %(100*zz, labels[1])
+    #     plt.text(zx, -0.04, text, fontsize=10, ha='center')
+
+    p0 = _compute_ternary_coords([0, .75], [.25, .25], [.75, 0])
+    plt.plot(p0[:,0], p0[:,1], 'b-', lw=1, ls="--", zorder=-2)
+    text = "%i%% %s " %(25, labels[1])
+    plt.text(p0[0,0], p0[0,1]-.2, text, rotation=60, va='bottom', ha='right')
+
+    p0 = _compute_ternary_coords([0, .5], [.5, .5], [.5, 0])
+    plt.plot(p0[:,0], p0[:,1], 'b-', lw=1, ls="--", zorder=-2)
+    text = "%i%% %s " %(50, labels[1])
+    plt.text(p0[0,0], p0[0,1]-.2, text, rotation=60, va='bottom', ha='right')
+
+
 def save_figfile(filename):
     """Save a figure in a pickle, similar to Matlab's .fig format"""
     fig = plt.gcf()
@@ -602,7 +716,7 @@ def save_figfile(filename):
         pickle.dump(fig, fp)
 
 
-def shadow():
+def shadow(**kwargs):
     """Add a drop-shadow to a line or some text 
 
     See also outline()
@@ -614,7 +728,7 @@ def shadow():
     See https://matplotlib.org/stable/tutorials/advanced/patheffects_guide.html
     """
 
-    return [meffect.SimpleLineShadow(), meffect.Normal()]
+    return [meffect.SimpleLineShadow(**kwargs), meffect.Normal()]
 
 
 def text_at_axis_coords(x, y, text, *args, **kwargs):

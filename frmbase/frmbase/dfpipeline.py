@@ -238,11 +238,6 @@ class GroupBy(AbstractStep):
     def __repr__(self):
         return f"<frm.dfpipeline.Groupby({self.col}, {self.predicate})>"
 
-    # def apply(self, df:pd.DataFrame):
-    #     gr = df.groupby(self.col)
-    #     # predicate = parsePredicate(df.columns, self.predicate)
-    #     cmd = f"gr.{self.predicate}"
-    #     return eval(cmd)
     def apply(self, df:pd.DataFrame):
         gr = df.groupby(self.col)
         # predicate = parsePredicate(df.columns, self.predicate)
@@ -290,12 +285,13 @@ class Load(AbstractStep):
     A Pandas dataframe
     """
 
-    def __init__(self, pattern, loader=None, add_src=True, **kwargs):
+    def __init__(self, pattern, loader=None, n=None, add_src=True, **kwargs):
         """
         """
         self.pattern = pattern
         self.loader = loader
         self.add_src = kwargs.pop('source', False)
+        self.num = n
         self.kwargs = kwargs
         self.opts = {
             'csv': pd.read_csv,
@@ -304,11 +300,21 @@ class Load(AbstractStep):
             'xls': pd.read_excel,
         }
 
+    def __str__(self):
+        classname = str(self.__class__)[:-2].split()[-1][1:]
+        strr = f"<{classname} on {self.pattern}>"
+        return strr
+
+    def apply(self, df=None):
+
     def apply(self, df=None)-> pd.DataFrame:
         flist = self.get_filelist(self.pattern)
         loader = self.get_loader(self.loader, flist)
 
         def load(fn):
+            if self.num is not None:
+                fn = self.head(fn, self.num)
+
             try:
                 df = loader(fn, **self.kwargs)
             except Exception as e:
@@ -320,6 +326,16 @@ class Load(AbstractStep):
 
         dflist = list(map(load, flist))
         return pd.concat(dflist)
+
+    def head(self, fn, num):
+        buffer = []
+        with open(fn) as fp:
+            for i in range(num+1):
+                buffer.append(fp.readline())
+        
+        from io import StringIO 
+        fout = StringIO("\n".join(buffer))
+        return fout 
 
     def get_filelist(self, pattern):
         flist = glob(pattern)
@@ -473,6 +489,23 @@ class SetCol(AbstractStep):
         df[self.col] = eval(predicate)
         return df
 
+
+class SetColByFunc(AbstractStep):
+    """I think I should find a way to merge this class into SetCol.
+    
+    Also, there's a better version of this function lieing around somewhere
+    """
+    def __init__(self, col, func, *args, **kwargs):
+        self.func = func 
+        self.col = col 
+        self.args = args 
+        self.kwargs = kwargs 
+
+    def apply(self, df):
+        df[self.col] =  self.func(df, *self.args, **self.kwargs)
+        return df
+
+
 class SetDayNum(AbstractStep):
     """
     Compute the number of days since some epoch.
@@ -501,6 +534,7 @@ class SetDayNum(AbstractStep):
         daynum = (jd - jd0).astype(self.dtype)
         df[self.daynumcol] = daynum
         return df 
+
 
 class Sort(AbstractStep):
     def __init__(self, col):

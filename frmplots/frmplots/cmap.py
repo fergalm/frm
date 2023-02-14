@@ -276,13 +276,22 @@ parula = LinearSegmentedColormap.from_list(
     colors=parula_data(),
     name='parula'
 )
-plt.register_cmap(cmap=parula)
+
+
+try:
+    plt.register_cmap(cmap=parula)
+except ValueError:
+    pass
 
 parula_r = LinearSegmentedColormap.from_list(
     colors=parula_data()[::-1],
     name='parula_r'
 )
-plt.register_cmap(cmap=parula)
+
+try:
+    plt.register_cmap(cmap=parula_r)
+except ValueError:
+    pass
 
 
     

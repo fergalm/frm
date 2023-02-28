@@ -57,7 +57,7 @@ def runPipeline(tasks, df=None):
     return df
 
 
-def pipelineToString(pipeline):
+def pipelineToStrings(pipeline):
     """Convert a pipeline to a list of strings"""
     strs = list(map(str, pipeline))
     return strs
@@ -305,8 +305,6 @@ class Load(AbstractStep):
         strr = f"<{classname} on {self.pattern}>"
         return strr
 
-    def apply(self, df=None):
-
     def apply(self, df=None)-> pd.DataFrame:
         flist = self.get_filelist(self.pattern)
         loader = self.get_loader(self.loader, flist)
@@ -503,6 +501,47 @@ class SetColByFunc(AbstractStep):
 
     def apply(self, df):
         df[self.col] =  self.func(df, *self.args, **self.kwargs)
+        return df
+
+
+class SetColByTest(AbstractStep):
+    """Set values in a column based on a conditional
+
+    Example::
+        df = pd.DataFrame({
+            'a': [1,2,3,4,5]
+            'b': [1,2,3,4,5]
+        }
+
+        expected = pd.DataFrame({
+            'a': [1,2,9,9,9]
+            'b': [1,2,3,4,5]
+        }
+
+        df = SetColByTest('a', 'b > 2', '9', 'a').apply(df)
+        assert df == expected
+    """
+    def __init__(self, col, test, trueValue, falseValue=None):
+        self.col = col
+        self.test = test
+        self.trueValue = trueValue
+        self.falseValue = falseValue
+
+    def apply(self, df: pd.DataFrame):
+        predicate = parsePredicate(df.columns, self.test)
+        idx = eval(predicate)
+
+        trueValue = eval(parsePredicate(df.columns, self.trueValue))
+        if not hasattr(trueValue, '__len__'):
+            trueValue = trueValue * np.ones(len(df))
+
+        falseValue = eval(parsePredicate(df.columns, self.falseValue))
+        if not hasattr(falseValue, '__len__'):
+            falseValue = falseValue * np.ones(len(df))
+
+        col = falseValue.copy()
+        col[idx] = trueValue[idx]
+        df[self.col] = col
         return df
 
 

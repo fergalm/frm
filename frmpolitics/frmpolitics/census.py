@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ipdb import set_trace as idebug
+from pprint import pprint
 import osgeo.osr as osr
 import pandas as pd
 import numpy as np
@@ -13,7 +14,15 @@ import frmgis.get_geom as get_geom
 """
 Tools to query the US Census
 
-Built of api.census.gov
+Built off of api.census.gov
+
+Documentation
+---------------------
+See https://www.census.gov/data/developers/guidance/api-user-guide.html
+
+
+Overview
+-----------------
 There are two classes in this package
 
 CensusQuery()
@@ -135,6 +144,8 @@ Example Usage
     fips = '250054007011'
     c.query_county(year, src, table, fips, cols )
 
+    #Query ACS5
+    c.query_block_group(2021, 'acs', 'acs5',  24005, cols)
 A similar syntax applies for querying for tracts, counties and states.
 The server may set limits on how many levels you can query simultaneously.
 For example, querying every block group in a state isn't allowed in a
@@ -203,7 +214,7 @@ class CensusQuery():
         predicates['in'] = ['state:%s' %(state),
                             'county:%s' %(county),
                             'tract:%s' %(tract)]
-        from pprint import pprint
+
         pprint(locals())
         return self.query(year, src, table, predicates)
 
@@ -369,16 +380,7 @@ class TigerQuery():
 
     def download(self, ftype, year, state, county=None):
         fn = self.get_filename(ftype, year, state, county)
-
-        year_string = None
-        if county is not None:
-            year_string = f"{year}"
-
-        url = os.path.join(self.url,
-                           f"TIGER{year}",
-                           f"{ftype.upper()}",
-                           f"{year_string}",
-                           fn)
+        url = self.make_url(year, ftype, county, fn)
 
         cache_file = self.get_cache_path(ftype, year, state, county)
         r = requests.get(url)
@@ -388,6 +390,21 @@ class TigerQuery():
         with open(cache_file, 'wb') as fp:
             fp.write(r.content)
         return cache_file
+
+    def make_url(self, year, ftype, county, fn):
+        if county is None:
+            url = os.path.join(self.url,
+                            f"TIGER{year}",
+                            f"{ftype.upper()}",
+                            fn)
+        else:
+            url = os.path.join(self.url,
+                            f"TIGER{year}",
+                            f"{ftype.upper()}",
+                            f"{year:04d}",
+                            fn)
+        return url 
+    
 
     def convert_zip_to_wgs84_df(self, zip_file, year):
 
@@ -400,8 +417,10 @@ class TigerQuery():
         dest.ImportFromEPSG(4326)  #WGS84
         transform = osr.CoordinateTransformation(source, dest)
 
+        #Note, this used to be geoms, and I changed it to geom
+        #if geom fails, put in better logic
         for i in range(len(df)):
-            df.geoms.iloc[i].Transform(transform)
+            df.geom.iloc[i].Transform(transform)
         return df
 
 
@@ -438,7 +457,7 @@ class TigerQuery():
 class TigerQueryAcs(TigerQuery):
     def __init__(self, cache_path):
         TigerQuery.__init__(self, cache_path)
-        self.fips_alias_in_shpfile = "GEOID"
+        # self.fips_alias_in_shpfile = "GEOID"
 
     def get_filename(self, ftype, year, state, county):
         fn = f"tl_{year}_{state}_{ftype.lower()}.zip"

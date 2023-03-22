@@ -1,4 +1,3 @@
-from tokenize import Number
 from ipdb import set_trace as idebug
 import pandas as pd
 import numpy as np
@@ -14,9 +13,24 @@ modify a dataframe in a clean fashion
 
 """
 
+# Stratos is a more complicated pipeline package that allows
+# branching pipelines (something runPipeline does not. Use it
+# if it's available on this system, but don't crash if it isn't
+try:
+    from stratos.task import Task
+except ImportError:
+    #Define a stub class
+    class Task:
+        pass 
+    
+    
+from typing import Optional
 
-class AbstractStep:
+class AbstractStep(Task):
     pass
+
+    def func(self, df:Optional[pd.DataFrame])-> pd.DataFrame:
+        return self.apply(df)
 
     def __str__(self):
         classname = str(self.__class__)[:-2].split()[-1][1:]
@@ -43,7 +57,7 @@ def runPipeline(tasks, df=None):
     return df
 
 
-def pipelineToString(pipeline):
+def pipelineToStrings(pipeline):
     """Convert a pipeline to a list of strings"""
     strs = list(map(str, pipeline))
     return strs
@@ -76,7 +90,7 @@ class ApplyFunc(AbstractStep):
         self.func = func
         self.replace = replace
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         if self.col in df.columns and not self.replace:
             raise ValueError(
                 f"Column {self.col} already exists in dataframe. Set replace=False to overwrite"
@@ -92,7 +106,7 @@ class AssertColExists(AbstractStep):
         warnings.warn("Use dfverify.VerifyColExists", DeprecationWarning, stacklevel=2)
         self.cols = cols
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         if set(df.columns) >= set(self.cols):
             return df
 
@@ -108,14 +122,14 @@ class AssertNotEmpty(AbstractStep):
     def __init__(self):
         warnings.warn("Use dfverify.VerifyNotEmpty", DeprecationWarning, stacklevel=2)
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         assert len(df) > 0, "No rows in dataframe"
         assert len(df.columns) > 0, "No columns in dataframe"
         return df
 
 
 class Copy(AbstractStep):
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df.copy()
 
 
@@ -125,7 +139,7 @@ class Custom(AbstractStep):
     def __init__(self, action):
         self.action = action
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         df = df.reset_index(drop=True)
         df = eval(self.action)
         return df
@@ -140,7 +154,7 @@ class Debugger(AbstractStep):
     def __init__(self, action="True"):
         self.action = action 
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         if eval(self.action):
             idebug()
         return df
@@ -153,7 +167,7 @@ class DropDuplicates(AbstractStep):
         self.cols = cols
 
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df.drop_duplicates(self.cols, keep="first").copy()
 
 
@@ -165,7 +179,7 @@ class DropCol(AbstractStep):
         self.cols = cols_to_remove
         self.halt_on_missing = halt_on_missing
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         #If halt_on_missing is False, silently ignore cases where
         #the column we want to drop doesn't exist.
         #Implemented by culling requested cols to only those that exist in df
@@ -176,12 +190,20 @@ class DropCol(AbstractStep):
         return df.drop(list(cols), axis=1)
 
 
+class DropNan(AbstractStep):
+    def __init__(self, how='any'):
+        self.how = how
+
+    def apply(self, df:pd.DataFrame):
+        return df.dropna(axis=0, how=self.how)
+
+
 class Filter(AbstractStep):
     def __init__(self, predicate, copy=False):
         self.predicate = predicate
         self.copy = copy
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         """Eg to search df['x'] > 100
         Do Filter('x > 100').apply(df)
         """
@@ -203,7 +225,7 @@ class GroupApply(AbstractStep):
         self.args = args 
         self.kwargs = kwargs
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         gr = df.groupby(self.col)
         return gr.apply(self.func, *self.args, **self.kwargs).reset_index()
 
@@ -216,11 +238,12 @@ class GroupBy(AbstractStep):
     def __repr__(self):
         return f"<frm.dfpipeline.Groupby({self.col}, {self.predicate})>"
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         gr = df.groupby(self.col)
         # predicate = parsePredicate(df.columns, self.predicate)
         cmd = f"gr.{self.predicate}"
-        return eval(cmd)
+        series = eval(cmd)
+        return series.reset_index(drop=False)
 
 
 class GroupFilter(AbstractStep):
@@ -230,7 +253,7 @@ class GroupFilter(AbstractStep):
         self.col = groupbyCol
         self.func = func
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         gr = df.groupby(self.col)
         return gr.filter(self.func)
 
@@ -283,7 +306,7 @@ class Load(AbstractStep):
         strr = f"<{classname} on {self.pattern}>"
         return strr
 
-    def apply(self, df=None):
+    def apply(self, df=None)-> pd.DataFrame:
         flist = self.get_filelist(self.pattern)
         loader = self.get_loader(self.loader, flist)
 
@@ -372,7 +395,7 @@ class Pivot(AbstractStep):
         self.columns = columns 
         self.values = values 
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         df = df.pivot(index=self.index, columns=self.columns, values=self.values)
         df = df.reset_index()
         return df 
@@ -382,7 +405,7 @@ class RenameCol(AbstractStep):
     def __init__(self, mapper):
         self.mapper = mapper
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df.rename(self.mapper, axis=1)
 
 
@@ -390,7 +413,7 @@ class ResetIndex(AbstractStep):
     def __init__(self, drop=True):
         self.drop = drop
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df.reset_index(drop=self.drop)
 
 
@@ -429,7 +452,7 @@ class SelectCol(AbstractStep):
     def __repr__(self):
         return f"<frm.dfpipeline.SelectCol({self.cols})>"
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df[ list(self.cols)]
 
 
@@ -454,7 +477,7 @@ class SetCol(AbstractStep):
     def __repr__(self):
         return f"<frm.dfpipeline.SetCol({self.col}, {self.predicate})>"
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         if self.col in df.columns and not self.replace:
             raise ValueError(
                 f"Column {self.col} already exists in dataframe. Set replace=False to overwrite"
@@ -481,6 +504,48 @@ class SetColByFunc(AbstractStep):
         df[self.col] =  self.func(df, *self.args, **self.kwargs)
         return df
 
+
+class SetColByTest(AbstractStep):
+    """Set values in a column based on a conditional
+
+    Example::
+        df = pd.DataFrame({
+            'a': [1,2,3,4,5]
+            'b': [1,2,3,4,5]
+        }
+
+        expected = pd.DataFrame({
+            'a': [1,2,9,9,9]
+            'b': [1,2,3,4,5]
+        }
+
+        df = SetColByTest('a', 'b > 2', '9', 'a').apply(df)
+        assert df == expected
+    """
+    def __init__(self, col, test, trueValue, falseValue=None):
+        self.col = col
+        self.test = test
+        self.trueValue = trueValue
+        self.falseValue = falseValue
+
+    def apply(self, df: pd.DataFrame):
+        predicate = parsePredicate(df.columns, self.test)
+        idx = eval(predicate)
+
+        trueValue = eval(parsePredicate(df.columns, self.trueValue))
+        if not hasattr(trueValue, '__len__'):
+            trueValue = trueValue * np.ones(len(df))
+
+        falseValue = eval(parsePredicate(df.columns, self.falseValue))
+        if not hasattr(falseValue, '__len__'):
+            falseValue = falseValue * np.ones(len(df))
+
+        col = falseValue.copy()
+        col[idx] = trueValue[idx]
+        df[self.col] = col
+        return df
+
+
 class SetDayNum(AbstractStep):
     """
     Compute the number of days since some epoch.
@@ -501,7 +566,7 @@ class SetDayNum(AbstractStep):
         assert dtype in [int, float], "Dtype must be either int or float"
         self.dtype = dtype 
     
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         jd0 = 2440587.5  #1970-01-01 00:00
         date = pd.to_datetime(df[self.datecol])
         jd  = pd.DatetimeIndex(date).to_julian_date()
@@ -510,11 +575,12 @@ class SetDayNum(AbstractStep):
         df[self.daynumcol] = daynum
         return df 
 
+
 class Sort(AbstractStep):
     def __init__(self, col):
         self.col = col 
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         return df.sort_values(self.col)
 
 class ToDatetime(AbstractStep):
@@ -528,7 +594,7 @@ class ToDatetime(AbstractStep):
     def __repr__(self):
         return f"<frm.dfpipeline.ToDatetime({self.col})>"
 
-    def apply(self, df):
+    def apply(self, df:pd.DataFrame):
         df[self.col] = pd.to_datetime(df[self.col], *self.args, **self.kwargs)
         return df
 

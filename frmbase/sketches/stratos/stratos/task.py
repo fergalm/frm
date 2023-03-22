@@ -3,7 +3,7 @@ from pprint import pprint
 import pandas as pd
 
 from typing import Any, List, get_type_hints
-from typeguard import check_type
+# from typeguard import check_type
 import inspect
 import pytypes 
 

@@ -108,6 +108,7 @@ class GeomCollection():
         return out 
 
     def _compute_overlap(self, shape):
+        eps = 1e-99
         geom = AnyGeom(shape).as_geometry()
         env = geom.GetEnvelope()
         wh = list(self.geom_tree.intersection(env))
@@ -116,7 +117,7 @@ class GeomCollection():
         for i in wh:
             gi = self.geom_df[self.geom_col].iloc[i]
             intersection = geom.Intersection(gi)
-            frac_overlap[i] = intersection.Area() / gi.Area()
+            frac_overlap[i] = intersection.Area() / gi.Area() 
         return frac_overlap
 
     def plot(self, *args, **kwargs):

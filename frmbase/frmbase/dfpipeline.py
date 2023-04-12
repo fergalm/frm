@@ -227,7 +227,8 @@ class GroupApply(AbstractStep):
 
     def apply(self, df:pd.DataFrame):
         gr = df.groupby(self.col)
-        return gr.apply(self.func, *self.args, **self.kwargs).reset_index()
+        drop = self.kwargs.pop('drop', True)
+        return gr.apply(self.func, *self.args, **self.kwargs).reset_index(drop=drop)
 
 
 class GroupBy(AbstractStep):

@@ -72,7 +72,7 @@ def load_geoms_as_df(fn, idkey=None, all_keys=True):
         keys = [idkey]
 
     df = pd.DataFrame()
-    df['geoms'] = list(map(lambda x: x[0], props))
+    df['geom'] = list(map(lambda x: x[0], props))
 
     for k in keys:
         df[k] = list(map(lambda x: x[1][k], props))

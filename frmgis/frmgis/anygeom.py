@@ -199,7 +199,7 @@ class AnyGeom(object):
             if hasattr(elt, 'ndim'):
                 #elt = np.atleast_2d(elt)
                 assert elt.ndim == 2
-                patches.append(mpatch.Polygon(elt, closed=True, **kwargs))
+                patches.append(mpatch.Polygon(elt[:,:2], closed=True, **kwargs))
             else:
                 for e in elt:
                     patches.extend(foo(e, **kwargs))

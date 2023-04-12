@@ -299,6 +299,7 @@ class Load(AbstractStep):
             'parquet': pd.read_parquet,
             'json': pd.read_json,
             'xls': pd.read_excel,
+            'xlsx': pd.read_excel,
         }
 
     def __str__(self):

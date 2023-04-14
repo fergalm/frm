@@ -43,7 +43,7 @@ An exercise is to figure out
 * How to set this up in the rcParams
 
 """
-
+import gzip
 
 import matplotlib.collections as mcollect
 from matplotlib.gridspec import GridSpec
@@ -362,11 +362,25 @@ def fix_date_labels():
 
 
 
+# def load_figfile(filename):
+#     """Load a figure from a pickle, similar to Matlab's .fig format"""
+#     fig = plt.gcf()
+#     with open(filename, 'rb') as fp:
+#         fig = pickle.load(fp)
+#     return fig
+
 def load_figfile(filename):
     """Load a figure from a pickle, similar to Matlab's .fig format"""
     fig = plt.gcf()
     with open(filename, 'rb') as fp:
-        fig = pickle.load(fp)
+        bytes = fp.read()
+        try:
+            bytes = gzip.decompress(bytes)
+        except gzip.BadGzipFile:
+            # Older versions of save_figfile did not compress their data
+            pass
+
+        fig = pickle.loads(bytes)
     return fig
 
 
@@ -813,11 +827,17 @@ def _decorate_ternary_plot(labels):
     plt.text(p0[0,0], p0[0,1]-.2, text, rotation=60, va='bottom', ha='right')
 
 
+# def save_figfile(filename):
+#     """Save a figure in a pickle, similar to Matlab's .fig format"""
+#     fig = plt.gcf()
+#     with open(filename, 'wb') as fp:
+#         pickle.dump(fig, fp)
+
 def save_figfile(filename):
-    """Save a figure in a pickle, similar to Matlab's .fig format"""
+    """Save a figure in a compressed pickle, similar to Matlab's .fig format"""
     fig = plt.gcf()
     with open(filename, 'wb') as fp:
-        pickle.dump(fig, fp)
+        fp.write( gzip.compress(pickle.dumps(fig)) )
 
 
 def shadow(**kwargs):

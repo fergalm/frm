@@ -5,6 +5,13 @@ Some common plots I like to make
 
 Some tips I haven't written to functions yet
 ---------------------------------------------
+
+The better way to do subplots
+
+::
+    grid = plt.gcf().subplot_mosaic("abc\def", sharex=True)
+    plt.sca(grid['a'])
+
 How to have dates on the colour bar axis
 
 ::
@@ -36,7 +43,7 @@ An exercise is to figure out
 * How to set this up in the rcParams
 
 """
-
+import gzip
 
 import matplotlib.collections as mcollect
 from matplotlib.gridspec import GridSpec
@@ -316,7 +323,7 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
 
     ls = kwargs.pop('ls', "none")
     ls = kwargs.pop('linestyle', ls)
-    marker = kwargs.pop('marker', 'o')
+    marker = kwargs.pop('marker', '.')
     # aspect = kwargs.pop('aspect', 'auto')   #Equal gives square bins
     zorder = kwargs.pop('zorder', 0)
 
@@ -355,11 +362,25 @@ def fix_date_labels():
 
 
 
+# def load_figfile(filename):
+#     """Load a figure from a pickle, similar to Matlab's .fig format"""
+#     fig = plt.gcf()
+#     with open(filename, 'rb') as fp:
+#         fig = pickle.load(fp)
+#     return fig
+
 def load_figfile(filename):
     """Load a figure from a pickle, similar to Matlab's .fig format"""
     fig = plt.gcf()
     with open(filename, 'rb') as fp:
-        fig = pickle.load(fp)
+        bytes = fp.read()
+        try:
+            bytes = gzip.decompress(bytes)
+        except gzip.BadGzipFile:
+            # Older versions of save_figfile did not compress their data
+            pass
+
+        fig = pickle.loads(bytes)
     return fig
 
 
@@ -511,6 +532,103 @@ def plot_model_hist(model, bins, n_elt, *args, **kwargs):
     kwargs['where'] = kwargs.pop('where', 'post')
     vals = np.diff(model.cdf(bins))
     plt.step(bins[:-1], vals * n_elt, *args, **kwargs)
+
+
+def monthly_plot(df, *args, plotter=None, datecol='date', ycol='val', **kwargs):
+    """Plot a 4x3 grid of time-series, one per calendar month
+
+    Useful to track seasonal changes in daily time-series
+
+    Inputs
+    --------
+    df
+        (DataFrame)
+    plotter
+        (Callable) A function to plot a month's worth of data. See below
+    datecol
+        (str) Name of column in `df` that contains the data information
+    ycol
+        (str) Name of column in `df` containing values to plot
+
+    All other arguments are passed to the `plotter` function
+
+    Returns
+    ----------
+    A dictionary of axis objects
+
+    Notes
+    -----
+    * If no value passed for `plotter`, then `default_monthly_plotter` is called.
+    This function serves as the reference implmentation.
+
+    * The signture to the `plotter` function is
+        * df (the dataframe)
+        * datecol
+        * args and kwargs.
+    If ycol is set in the call to the parent function, it is passed as kwargs.
+    """
+
+
+    plotter = plotter or default_monthly_plotter
+    kwargs['ycol'] = ycol
+
+    df[datecol] = pd.to_datetime(df[datecol])
+    df = df.sort_values(datecol)
+    year = df[datecol].dt.year
+    month = df[datecol].dt.month
+
+    plt.clf()
+    # grid = plt.gcf().subplot_mosaic("abc\ndef\nghi\njkl", sharex=True, sharey=True)
+    grid = plt.gcf().subplot_mosaic("abcd\nefgh\nijkl", sharex=True, sharey=True)
+    kwargs['_plot_grid'] = grid
+    grid = df.groupby([year, month]).apply(_plot_single_month, plotter, datecol, *args, **kwargs)
+
+    plt.subplots_adjust(wspace=0)
+    return grid.iloc[0]  #Is a dictionary
+
+def _plot_single_month(df, plotter, datecol,  *args, **kwargs):
+    """Private function of `monthly_plot`"""
+    #Pick the correct subplot
+    subplots = '_abcdefghijkl'
+    grid = kwargs.pop('_plot_grid')
+    month = df[datecol].dt.month.iloc[0]
+    plt.sca(grid[ subplots[month]])
+
+    plotter(df, datecol, *args, **kwargs)
+    months = "___ Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+    plt.title(months[month])
+    return grid
+
+
+def default_monthly_plotter(df, datecol, *args, **kwargs):
+    """Example plotter for `monthly_plot()`
+    
+    Is passed a dataframe where every data point shares the same year and month.
+    Any return value is ignored.
+    
+    Inputs
+    -------
+    df
+        (DataFrame)
+    datecol
+        (str) Name of column to plot on the xaxis 
+    
+    All other arguments are passed to the `plt.plot` function
+    """
+    def plot(df, datecol, *args, **kwargs):
+        ycol = kwargs.pop('ycol')
+        log = kwargs.pop('logy', False)
+
+        dates = df[datecol]
+        frac_hour = dates.dt.hour + dates.dt.minute / 60
+        assert np.all(np.diff(frac_hour) >= 0)
+        plt.plot(frac_hour, df[ycol], *args, **kwargs)
+
+        if log:
+            plt.gca().set_yscale('log')
+
+    day = df[datecol].dt.day
+    df.groupby(day).apply(plot, datecol, *args, **kwargs)
 
 
 def plot_with_discrete_cb(func, *args, **kwargs):
@@ -709,11 +827,17 @@ def _decorate_ternary_plot(labels):
     plt.text(p0[0,0], p0[0,1]-.2, text, rotation=60, va='bottom', ha='right')
 
 
+# def save_figfile(filename):
+#     """Save a figure in a pickle, similar to Matlab's .fig format"""
+#     fig = plt.gcf()
+#     with open(filename, 'wb') as fp:
+#         pickle.dump(fig, fp)
+
 def save_figfile(filename):
-    """Save a figure in a pickle, similar to Matlab's .fig format"""
+    """Save a figure in a compressed pickle, similar to Matlab's .fig format"""
     fig = plt.gcf()
     with open(filename, 'wb') as fp:
-        pickle.dump(fig, fp)
+        fp.write( gzip.compress(pickle.dumps(fig)) )
 
 
 def shadow(**kwargs):

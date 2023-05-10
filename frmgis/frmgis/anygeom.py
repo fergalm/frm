@@ -207,8 +207,81 @@ class AnyGeom(object):
 
         xy_list = ogrGeometryToArray(self.obj)
         patches = foo(xy_list, **kwargs)
+        return patches
 
 
+    def as_bokeh(self):
+        """THIS FUNCTION IS NOT TESTED!!!
+        
+        Bokeh expects geometries in the following format:
+
+
+        Each geometry is expressed as two lists, one for the longitudes
+        and one for the latitudes. A Polygon is a list (ok 2 lists) of length 1,
+        a multigeometry is a list with multiple elements.
+        Each element of the list is a dictionary. The dictionary
+        has two keys, 'exterior' and 'holes'. Exterior is a single
+        list of points in one dimension. Holes is a list of lists.
+        Each sublist is a list of coordinates.::
+
+            xs = [
+                #First polygon in the shape
+                {
+                    'exterior': [1,2,3,4],
+                    'holes': [
+                                [...], #first hole
+                                [...], #second hole
+                                ...
+                             ]
+                }
+                #second polygon
+                {
+                    'exterior': [5,6,7,8],
+                    'holes': []   #No holes
+                }
+            ]
+            ys = [...]
+
+        This function returns a tuple of two lists. If you 
+        have many patches you want to plot, concatenate the lng and 
+        lat arrays seperately::
+
+            value1, value2 = 10, 20
+            x1, y1 = geom1.as_bokeh()
+            x2, y2 = geom2.as_bokeh()
+            xs = [x1, x2]
+            ys = [y1, y2]
+            src = ColumnDataSource(xs=xs, ys=ys, value=[value1, value2]
+
+        """
+        xylist = ogrGeometryToArray(self.obj)
+        if isinstance(xylist, np.ndarray):
+            xylist = [xylist]
+
+        xs = []
+        ys = []
+        for elt in xylist:
+            xdict = {}
+            ydict = {}
+            if isinstance(elt, np.ndarray):
+                #Single polygon
+                xdict['exterior'] = elt[:,0]
+                ydict['exterior'] = elt[:,1]
+            else:
+                subelt = elt[0]
+                xdict['exterior'] = subelt[:,0]
+                ydict['exterior'] = subelt[:,1]
+
+                xdict['holes'] = []
+                ydict['holes'] = []
+                for subelt in elt[1:]:
+                    xdict['holes'].append( subelt[:,0])
+                    ydict['holes'].append( subelt[:,1])
+
+            xs.append(xdict)
+            ys.append(ydict)
+        
+        return xs, ys
         # for elt in xy_list:
         #     if hasattr(elt, 'ndim'):
         #         assert elt.ndim == 2
@@ -218,7 +291,6 @@ class AnyGeom(object):
         #         patches.append(mpatch.Polygon(outer, closed=True, **kwargs))
         #         patches.append(mpatch.Polygon(inner, closed=True, **kwargs))
 
-        return patches
 
 
     def as_shapely(self):

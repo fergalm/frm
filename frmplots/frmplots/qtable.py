@@ -1,138 +1,59 @@
-from ipdb import set_trace as idebug 
+from ipdb import set_trace as idebug
 
 import PyQt5.QtWidgets as QtWidget
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets
 
+"""
+A quick widget that can be called from ipython to display a dataframe
+"""
 
-
-class QTable():
-    """
-    Make a popup interactive table of data for easier viewing.
-
-    Not a plot, per se, but uses the same calls to PyQt as matplotlib
-    does, so it lives in the same repository
-
-    Inputs
-    ---------
-    df
-        Dataframe to display
-    num
-        (int) Max number of rows to display
-    numGuides
-        (int) Every nth row is drawn with a different background colour
-        to guide the eye
-
-
-    TODO:
-    ------
-    x Return control to the prompt
-    x Better highlight color
-    x Better default width and height
-    x Press [Q] to quit
-    x Sort dataframe by column
-    x Better sort
-    x Show/hide column
-    o format strings?
-    o max column widths?
-    o A title
-    o A button to show the column selector
-    o A better class name
-
-    Future Work
-    o Select columns and plot.
-    o Change column order?
-    """
-    def __init__(self, df, num=1000):
-        if len(df) > num:
-            df = df[:num]
-
-        self.df = df 
-        self.nrow = len(df)
-        self.ncol = len(df.columns)
-        self.app, self.table = self.create()
-        
-        self.set_size_policy()
-        self.draw_row_guides(None)
-        print("Press [Q] in window to quit")
-
-        self.selector = ColumnSelector(self)
-
-    def create(self):
+class QTable(PyQt5.QtWidgets.QDialog):
+    def __init__(self, df, num=1000, title="Dataframe", parent=None):
+        super().__init__(parent)
         app = PyQt5.QtWidgets.QApplication.instance()
         if app is None:
             app = PyQt5.QtWidgets.QApplication([])
 
-        app.setTitle = "Pandas DataFrame"
-        tab = PyQt5.QtWidgets.QTableWidget(self.nrow, self.ncol)
-        tab = self.set_table_elements(tab, self.df)
-        # tab.itemClicked.connect(print_which_cell_clicked)
-
-        header = tab.horizontalHeader()
-        header.sectionClicked.connect(self.draw_row_guides)
-        tab.show()
-        tab.setSortingEnabled(True)
-        
-        return app, tab 
-
-    def set_size_policy(self):
-        tab = self.table
-        width_pix = tab.horizontalHeader().length() + tab.verticalHeader().width() + 20
-        height_pix = tab.verticalHeader().length() + tab.horizontalHeader().width()
-        tab.setMaximumSize(width_pix, height_pix)
-
-        width_pix = min(width_pix, 1000)
-        height_pix = min(height_pix, 1000)
-        tab.resize(width_pix, height_pix)
+        self.create_layout(df, num, title)
+        self.selector = ColumnSelector(self.table)
+        self.selector.hide()
 
         #I think I have to subclass QTableWidget and override keyReleaseEvent
-        tab.keyReleaseEvent = self.quit
+        self.keyReleaseEvent = self.process_key_press
 
-    def quit(self, eventQKeyEvent):
+    def create_layout(self, df, num, title):
+        self.button = QtWidget.QPushButton("Show/hide Columns")
+        self.button.clicked.connect(self.toggle_button)
+        self.table = TableWidget(df, num=num)
+
+
+        layout = QtWidget.QVBoxLayout()
+        layout.addWidget(self.button)
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+
+        self.resize(self.table.width(), self.table.height())
+        self.setMaximumSize(self.table.getMaxWidth(), 10000)
+
+        self.setWindowTitle(title)
+
+    def process_key_press(self, eventQKeyEvent):
         key = eventQKeyEvent.key()
         if key == 81:  #The letter [q]
-            self.table.hide()
             self.selector.hide()
+            self.hide()
+            self.close()
 
-    def set_table_elements(self, tab, df):
-        tab.setHorizontalHeaderLabels(df.columns)
-
-        QItem = PyQt5.QtWidgets.QTableWidgetItem  #Mnumonic
-        for i, key in enumerate(df.columns):
-            col = df[key]
-            for j, elt in enumerate(col):
-                if elt is None:
-                    item = QItem(" ")
-                    continue
-                try:
-                    item = QItem("%g"% (elt))
-                except TypeError:
-                    item = QItem(str(elt))
-                #Mark item as readonly
-                item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
-                tab.setItem(j, i, item)
-
-        tab.resizeColumnsToContents()
-        tab.resizeRowsToContents()
-        return tab 
-
-    def draw_row_guides(self, index):
-        """This is called by the HeaderView.isClicked signal"""
-        guideStep = 5
-
-        for i in range(self.nrow):
-            clr = QtGui.QColor('#FFFFFF')
-            if i % guideStep == guideStep -1:
-                clr = QtGui.QColor('#DDDDFF')
-
-            for j in range(self.ncol):
-                item = self.table.item(i, j)
-                if item is not None:
-                    item.setBackground(clr)
+    def toggle_button(self):
+        if self.selector.isVisible():
+            self.selector.hide()
+        else:
+            self.selector.show()
 
     def toggleColumn(self, sender_label, state):
-        cols = self.df.columns
+        cols = self.table.df.columns
         for i in range(self.ncol):
             if cols[i] == sender_label:
                 if state:
@@ -149,6 +70,91 @@ class QTable():
             self.table.hideColumn(i)
 
 
+class TableWidget(PyQt5.QtWidgets.QTableWidget):
+    def __init__(self, df, num=1000, parent=None):
+        self.df = df[:num]
+        self.nrow = len(self.df)
+        self.ncol = len(self.df.columns)
+        super().__init__(self.nrow, self.ncol, parent=parent)
+        self.max_width = 1000
+
+        # PyQt5.QtWidgets.QTableWidget(self.nrow, self.ncol)
+        self.set_table_elements(self.df)
+        self.set_size_policy()
+        self.draw_row_guides()
+        self.setSortingEnabled(True)
+
+        header = self.horizontalHeader()
+        header.sectionClicked.connect(self.draw_row_guides)
+        self.resizeRowsToContents()
+
+    def set_table_elements(self, df):
+        self.setHorizontalHeaderLabels(df.columns)
+
+        QItem = PyQt5.QtWidgets.QTableWidgetItem  #Mnumonic
+        for i, key in enumerate(df.columns):
+            col = df[key]
+            for j, elt in enumerate(col):
+                # print(i, j, elt)
+                if elt is None:
+                    item = QItem(" ")
+                    continue
+                try:
+                    item = QItem("%g"% (elt))
+                except TypeError:
+                    item = QItem(str(elt))
+                # Mark item as readonly
+                item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
+                self.setItem(j, i, item)
+
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def set_size_policy(self):
+        width_pix = self.horizontalHeader().length() + self.verticalHeader().width() + 20
+        height_pix = self.verticalHeader().length() + self.horizontalHeader().width()
+        self.setMaximumSize(width_pix, height_pix)
+        self.max_width = width_pix
+
+        width_pix = min(width_pix, 1000)
+        height_pix = min(height_pix, 1000)
+        self.resize(width_pix, height_pix)
+
+    def getMaxWidth(self):
+        return self.max_width
+
+    def draw_row_guides(self):
+        """This is called by the HeaderView.isClicked signal"""
+        guideStep = 5
+
+        for i in range(self.nrow):
+            clr = QtGui.QColor('#FFFFFF')
+            if i % guideStep == guideStep -1:
+                clr = QtGui.QColor('#DDDDFF')
+
+            for j in range(self.ncol):
+                item = self.item(i, j)
+                if item is not None:
+                    item.setBackground(clr)
+
+    def toggleColumn(self, sender_label, state):
+        cols = self.df.columns
+        for i in range(self.ncol):
+            if cols[i] == sender_label:
+                if state:
+                    self.showColumn(i)
+                else:
+                    self.hideColumn(i)
+
+    def showAll(self):
+        for i in range(self.ncol):
+            self.showColumn(i)
+
+    def hideAll(self):
+        for i in range(self.ncol):
+            self.hideColumn(i)
+
+
 class ColumnSelector(PyQt5.QtWidgets.QDialog):
     def __init__(self, table, parent=None):
         self.table = table
@@ -163,6 +169,7 @@ class ColumnSelector(PyQt5.QtWidgets.QDialog):
         button2.clicked.connect(self.hideAll)
         layout.addWidget(button1)
         layout.addWidget(button2)
+        self.setWindowTitle("Select Columns")
 
         self.boxes = []
         for i, col in enumerate(df.columns):
@@ -175,22 +182,43 @@ class ColumnSelector(PyQt5.QtWidgets.QDialog):
         self.layout = layout
         self.show()
 
+        self.keyReleaseEvent = self.quit
+
+    def quit(self, eventQKeyEvent):
+        key = eventQKeyEvent.key()
+        if key == 81:  #The letter [q]
+            self.hide()
 
     def showAll(self):
-        self.table.showAll()  #Maybe unecessary?
-        
-        #Update all the checkboxes
+        self.table.showAll()  # Maybe unecessary?
+
+        # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(True)
 
     def hideAll(self):
-        self.table.hideAll()  #Maybe unecessary?
+        self.table.hideAll()  # Maybe unecessary?
 
-        #Update all the checkboxes
+        # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(False)
 
     def onToggle(self, state):
         sender = self.sender()
-        self.table.toggleColumn(sender.text(), state>0)
+        self.table.toggleColumn(sender.text(), state > 0)
 
+
+if __name__ == "__main__":
+    import pandas as pd
+    import sys
+
+    if len(sys.argv) != 2:
+        print("Usage: qtable.py file.csv")
+        sys.exit(1)
+
+    app = PyQt5.QtWidgets.QApplication([])
+    df = pd.read_csv(sys.argv[1])
+    print("loading data")
+    tab = QTable(df)
+    tab.show()
+    sys.exit(app.exec())

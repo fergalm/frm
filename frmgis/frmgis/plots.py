@@ -83,7 +83,8 @@ def chloropleth(polygons, values, **kwargs):
 
     patch_list = []
     for p,v in zip(polygons, values):
-        patch = AnyGeom(p).as_patch(facecolor=cmap(norm([v])[0]), **kwargs)
+        ap = AnyGeom(p)
+        patch = ap.as_patch(facecolor=cmap(norm([v])[0]), **kwargs)
         patch_list.extend(patch)
     pc = mcollect.PatchCollection(patch_list, match_original=True)
 

@@ -211,77 +211,34 @@ class AnyGeom(object):
 
 
     def as_bokeh(self):
-        """THIS FUNCTION IS NOT TESTED!!!
-        
-        Bokeh expects geometries in the following format:
-
-
-        Each geometry is expressed as two lists, one for the longitudes
-        and one for the latitudes. A Polygon is a list (ok 2 lists) of length 1,
-        a multigeometry is a list with multiple elements.
-        Each element of the list is a dictionary. The dictionary
-        has two keys, 'exterior' and 'holes'. Exterior is a single
-        list of points in one dimension. Holes is a list of lists.
-        Each sublist is a list of coordinates.::
-
-            xs = [
-                #First polygon in the shape
-                {
-                    'exterior': [1,2,3,4],
-                    'holes': [
-                                [...], #first hole
-                                [...], #second hole
-                                ...
-                             ]
-                }
-                #second polygon
-                {
-                    'exterior': [5,6,7,8],
-                    'holes': []   #No holes
-                }
-            ]
-            ys = [...]
-
-        This function returns a tuple of two lists. If you 
-        have many patches you want to plot, concatenate the lng and 
-        lat arrays seperately::
-
-            value1, value2 = 10, 20
-            x1, y1 = geom1.as_bokeh()
-            x2, y2 = geom2.as_bokeh()
-            xs = [x1, x2]
-            ys = [y1, y2]
-            src = ColumnDataSource(xs=xs, ys=ys, value=[value1, value2]
-
         """
-        xylist = ogrGeometryToArray(self.obj)
-        if isinstance(xylist, np.ndarray):
-            xylist = [xylist]
+        Convert geometry to a form suitable to plot in Bokeh.
 
-        xs = []
-        ys = []
-        for elt in xylist:
-            xdict = {}
-            ydict = {}
-            if isinstance(elt, np.ndarray):
-                #Single polygon
-                xdict['exterior'] = elt[:,0]
-                ydict['exterior'] = elt[:,1]
-            else:
-                subelt = elt[0]
-                xdict['exterior'] = subelt[:,0]
-                ydict['exterior'] = subelt[:,1]
+        Bokeh is weird, and this function only does half of what you want.
+        The issue is that concatenating lists of geometries together to plot
+        is kind of awkward.
 
-                xdict['holes'] = []
-                ydict['holes'] = []
-                for subelt in elt[1:]:
-                    xdict['holes'].append( subelt[:,0])
-                    ydict['holes'].append( subelt[:,1])
+        Usage: ::
 
-            xs.append(xdict)
-            ys.append(ydict)
-        
-        return xs, ys
+            # For a single geometry
+            x, y = obj.as_bokeh()
+            source1 = ColumnDataSource(dict(xs=[xs], ys=[ys]))
+
+            #Plot two geometries 
+            x1, y1 = obj1.as_bokeh()
+            x2, y2 = obj2.as_bokeh()
+            source2 = ColumnDataSource(dict(xs=[x1, x2], ys=[y1, y2]))
+
+            #Then to plot...
+            glyph = MultiPolygons(xs="xs", ys="ys", line_width=2)
+            plot.add_glyph(source1, glyph)
+            plot.add_glyph(source2, glyph)
+
+        """       
+        lng = ogrGeometryToNestedList(self.obj, 0)
+        lat = ogrGeometryToNestedList(self.obj, 1)
+        return lng, lat 
+
         # for elt in xy_list:
         #     if hasattr(elt, 'ndim'):
         #         assert elt.ndim == 2
@@ -454,8 +411,35 @@ def ogrGeometryToArray(geometry):
     return  np.atleast_2d(geometry.GetPoints())
 
 
+def ogrGeometryToNestedList(geometry, dim):
+    """Converter used for Bokeh
 
+    Converts one dimension (lng or lat) of a polygon-type geometry to
+    a nested list in a format bokeh will like
+    """
 
+    out = []
 
-
-#
+    name = geometry.GetGeometryName()
+    print(f"Geom of type {name}")
+    if name == 'MULTIPOLYGON':
+        print("is multi")
+        for i in range(geometry.GetGeometryCount()):
+            print(f"Multi subpoly {i}")
+            poly = geometry.GetGeometryRef(i)
+            out.extend(ogrGeometryToNestedList(poly, dim))
+    elif name == 'POLYGON':
+        print("is poly")
+        ringlist = []
+        for i in range(geometry.GetGeometryCount()):
+            print(f"poly ring {i}")
+            ring = geometry.GetGeometryRef(i)
+            points = np.atleast_2d(ring.GetPoints())
+            points = points[:, dim]
+            ringlist.append( points.tolist())
+        # idebug()
+        out.append(ringlist)
+    else:
+        raise ConversionError("Currently only polygons and multipolygons supported for Bokeh ")
+    
+    return out 

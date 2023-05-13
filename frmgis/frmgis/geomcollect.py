@@ -98,24 +98,35 @@ class GeomCollection():
         This is not a fast function
         """
 
-        out = pd.DataFrame()
-        for i, row in tqdm(df.iterrows()):
-            name = row[name_col]
-            shape = row[geom_col]
+        names = df[name_col]
+        out = pd.DataFrame(columns=names)
+
+        elts = list(zip(df[name_col], df[geom_col]))
+        for name, shape in tqdm(elts):
             overlap = self._compute_overlap(shape)
             out[name] = overlap 
         out.index = self.geom_df[self.name_col]
         return out 
 
+        # for i, row in tqdm(df.iterrows()):
+        #     name = row[name_col]
+        #     shape = row[geom_col]
+        #     overlap = self._compute_overlap(shape)
+        #     out[name] = overlap 
+        # out.index = self.geom_df[self.name_col]
+        # return out 
+
     def _compute_overlap(self, shape):
         eps = 1e-99
         geom = AnyGeom(shape).as_geometry()
         env = geom.GetEnvelope()
-        wh = list(self.geom_tree.intersection(env))
+        wh = list(self.geom_tree.intersection(env))  
 
-        frac_overlap = np.zeros(self.size, dtype=float)
+        #frac_overlap = np.zeros(self.size, dtype=float)
+        frac_overlap = pd.Series(index=self.geom_df.index)
+        #wh is a list of index locations, use .loc not .iloc
         for i in wh:
-            gi = self.geom_df[self.geom_col].iloc[i]
+            gi = self.geom_df[self.geom_col].loc[i]
             intersection = geom.Intersection(gi)
             frac_overlap[i] = intersection.Area() / gi.Area() 
         return frac_overlap

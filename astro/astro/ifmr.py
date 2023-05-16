@@ -24,7 +24,7 @@ def estimate_main_sequence_lifetime_Gyr(mass_solar, mass_unc=None):
     if mass_unc is None:
         return age
 
-    age_unc = 10 * (2.5) * mass_solar ** (-3.5)
+    age_unc = mass_unc * 10 * (2.5) * mass_solar ** (-3.5) 
     return age, age_unc
     
 
@@ -65,7 +65,7 @@ def linear_ifmr(Mf_solar, dMf, a0, da0, b0, db0):
     return Minit_solar, Minit_unc
         
 
-    
+
 
 
 #//Because so many IFMR's are linear, I've abstracted out a function to

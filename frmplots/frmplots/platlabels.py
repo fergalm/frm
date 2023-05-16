@@ -8,6 +8,20 @@ It's not there yet
 import matplotlib.pyplot as plt 
 import matplotlib as mpl
 import numpy as np
+import itertools 
+
+"""
+if is_visible[j]:
+
+    for h in [left, center, right]:
+        t.set_horizontal_alignment(h)
+        for v in ["baseline","bottom",  "top"]
+            t.set_vertical_alignment(v)
+            is_overlap = self.overlap(t, self.tList[j])
+            if not is_overlap:
+                #Break out of the loop, the label goes here"
+            
+"""
 
 
 class PlatLabel():
@@ -102,24 +116,69 @@ class PlatLabel():
         """
         levels = np.array( list(map(lambda x: x.level, self.tList)))
 
-        visibleList = [self.tList[0]]
         srt = np.argsort(levels)
+        is_visible = np.ones_like(srt, dtype=bool)
 
-        for i in srt[1:]:
-            t = self.tList[i]
-            t.set_visible(True)
+        for i in range(len(srt)):
+            t_i = self.tList[ srt[i] ]
+            t_i.set_visible(True)
 
             j = 0
-            while j < len(visibleList):
-                if self.overlap(t, visibleList[j]):
-                    # print(f"{i} overlaps with {j}")
-                    t.set_visible(False)
-                    # print(f"Marking elt {i} ({t}) as invisible")
+            while j < i:
+                t_j = self.tList[ srt[j] ]
+                if self.overlap(t_i, t_j) and is_visible[j]:
+                    # print(f"{i} overlaps with {j}, {t_j}")
+                    # print(f"Marking elt {i} ({t_i}) as invisible")
+                    is_visible[i] = False 
+                    t_i.set_visible(False)
                     break
                 j+= 1
 
-            if j == len(visibleList):
-                visibleList.append(t)
+
+    # def advanced_render(self):
+
+    #     #Level 1 comes before level 2 etc.
+    #     tList = sorted(self.tList, key=lambda x: x.level)
+    #     nLabel = len(tList)
+
+    #     ha = "left right".split()
+    #     va = "bottom top".split()
+    #     placement_options = list(itertools.product(va, ha))
+
+    #     for i in range(nLabel):
+    #         t_i = tList[i]
+    #         t_i.set_visible(False)
+
+    #     for i in range(nLabel):
+    #         t_i = tList[i]
+    #         t_i.set_visible(True)
+
+    #         for pl in placement_options:
+    #             t_i.set_horizontalalignment(pl[1])
+    #             t_i.set_verticalalignment(pl[0])
+    #             print(t_i.get_text(), pl, t_i.get_ha(), t_i.get_va())
+    #             print( getTextBbox(t_i))
+
+    #             flag = True 
+    #             for j in range(i):
+    #                 t_j = tList[j]
+
+    #                 if  t_j.get_visible() and self.overlap(t_i, t_j):
+    #                     flag = False 
+    #                     #We found an overlap, this placement is invalid, stop looking
+    #                     #Try the next placement option
+    #                     break 
+
+    #             plt.pause(.1)
+    #             print(t_i)
+    #             import ipdb; ipdb.set_trace()
+
+    #             if flag:
+    #                 #We found a legimiate placement, stop looking for more
+    #                 #Try to place the label i+1
+    #                 t_i.set_visible(True)
+    #                 break
+    #             t_i.set_visible(False)
 
 
     def overlap(self, t1, t2):

@@ -421,18 +421,18 @@ def ogrGeometryToNestedList(geometry, dim):
     out = []
 
     name = geometry.GetGeometryName()
-    print(f"Geom of type {name}")
+    # print(f"Geom of type {name}")
     if name == 'MULTIPOLYGON':
-        print("is multi")
+        # print("is multi")
         for i in range(geometry.GetGeometryCount()):
-            print(f"Multi subpoly {i}")
+            # print(f"Multi subpoly {i}")
             poly = geometry.GetGeometryRef(i)
             out.extend(ogrGeometryToNestedList(poly, dim))
     elif name == 'POLYGON':
-        print("is poly")
+        # print("is poly")
         ringlist = []
         for i in range(geometry.GetGeometryCount()):
-            print(f"poly ring {i}")
+            # print(f"poly ring {i}")
             ring = geometry.GetGeometryRef(i)
             points = np.atleast_2d(ring.GetPoints())
             points = points[:, dim]

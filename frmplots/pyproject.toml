@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "frmplots"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "My personal high level plotting tools for matplotlib"
 authors = ["Fergal <fergal.mullally@gmail.com>"]
 
 [tool.poetry.dependencies]

@@ -32,3 +32,8 @@ poetry build
 ```
 
 The tarball should show up in dist/
+
+
+## To install to PyPi
+poetry publish -u fergalm -p PASSWORD
+I keep my password in my password manager

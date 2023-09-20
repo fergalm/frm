@@ -148,11 +148,16 @@ class Pipeline(Task):
            depends on. 
     """
 
-    def __init__(self, tasks, gc=True):
+    def __init__(self, tasks, name=None, gc=True):
         self.graph, self.task_dict = self.create_graph(tasks)
         self.verify_graph()
         self.tasklist = list(nx.topological_sort(self.graph))[::-1]
         self.gc = gc
+        self.name = name or "Unnamed Pipeline"
+
+    def __repr__(self):
+        classname = str(self.__class__)[:-2].split()[-1][1:]
+        return f"<{classname} called {self.name}>"
 
     def create_graph(self, tasklist):
         labels = dict()
@@ -215,10 +220,11 @@ class Pipeline(Task):
         #If the input to this pipline is the output of another pipeline,
         #we check for compatibility with can_depend_on. If the input
         #is actual data, we just validate the data
-        try:
-            t0.can_depend_on(*args)
-        except (AttributeError, ValidationError):
-            t0.validate_input_args(args)
+
+        # try:
+        #     t0.can_depend_on(*args)
+        # except (AttributeError, ValidationError):
+        #     t0.validate_input_args(args)
 
         #Recursively validate
         # t0.validate()

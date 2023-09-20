@@ -41,9 +41,11 @@ class AbstractStep(Task):
         return strr
     
 
-def runPipeline(tasks, df=None):
+def runPipeline(tasks, df=None, verbose=False):
     """ """
     for i, t in enumerate(tasks):
+        if verbose:
+            print(t)
         try:
             df = t.apply(df)
         except Exception as e:
@@ -307,7 +309,9 @@ class Load(AbstractStep):
         strr = f"<{classname} on {self.pattern}>"
         return strr
 
-    def apply(self, df=None)-> pd.DataFrame:
+    # def apply(self, df=None)-> pd.DataFrame:
+    def apply(self, df=None) -> pd.DataFrame:
+
         flist = self.get_filelist(self.pattern)
         loader = self.get_loader(self.loader, flist)
 

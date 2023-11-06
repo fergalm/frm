@@ -10,7 +10,8 @@ from pdb import set_trace as debug
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import const
+
+from . import const
 
 import scipy.integrate as spInt
 #import synphot.units as su

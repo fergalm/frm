@@ -161,8 +161,14 @@ def convertMagToJy(mag, zeroPointFlux):
     return zeroPointFlux * 10**(-mag/2.5)  
 
 
-def convertJyToMag(flux, zeroPointFlux):
-    return -2.5 * np.log10(flux/zeroPointFlux)
+def convertJyToMag(flux, zeroPointFlux, flux_unc=None):
+    mag = -2.5 * np.log10(flux/zeroPointFlux)
+
+    if flux_unc is None:
+        return mag 
+    
+    dmag = 2.5 / np.log(10) * (flux_unc / flux)
+    return mag, dmag 
 
 def jwstBackgroundLimitsLow_Jy() -> dict:
     """Background limits for JWST for regions of the sky with low background

@@ -120,11 +120,10 @@ class Task():
 
         # idebug()
         if len(args) != len(my_hints):
-            msg = f"Task {self} expected {len(my_hints)} args, got {len(args)}"
+            msg = f"Task {self} expected {len(my_hints)} args from {my_hints}, got {len(args)}: {args}"
             raise ValidationError(msg)
 
         for key, task in zip(my_hints.keys(), args):
-            # validate_type(task.get_output_signature(), my_hints[key])
             if not validate_type(task.get_output_signature(), my_hints[key]):
                 raise ValidationError
         return True

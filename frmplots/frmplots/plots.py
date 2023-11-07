@@ -23,7 +23,8 @@ How to have dates on the colour bar axis
     
     
     
-How to change the date format in the toolbar of an interactive plot
+How to change the date format in the toolbar of an interactive plot. UPDATE: This is now implemented
+in `fix_date_labels()` below
 
 ::
     import matplotlib.dates as mdate
@@ -37,10 +38,8 @@ How to change the date format in the toolbar of an interactive plot
         ax.fmt_xdata = foo
         
 There is another function pointer called fmt_ydata for the y data format
-An exercise is to figure out 
-
-* How to check if the x axis is plotting dates or not 
-* How to set this up in the rcParams
+An exercise is to figure out is
+how to check if the x axis is plotting dates or not
 
 """
 import gzip
@@ -58,6 +57,8 @@ import pandas as pd
 import numpy as np
 import pickle
 import copy
+
+from typing import Iterable
 
 from . import norm as fnorm
 from . galaxyplot import galaxyPlot
@@ -337,7 +338,10 @@ def densityPlot(x,y, xBins, yBins, *args, **kwargs):
 
 
 def fix_date_labels():
-    """Format date strings in x-axis label so they're easier to read
+    """Format date strings in x-axis label so they're easier to read.
+
+    Also fixes the box at top right of the interactive
+    window that reports the cursor location
     
     Note
     ----------
@@ -360,14 +364,95 @@ def fix_date_labels():
     ax = plt.gca()
     ax.xaxis.set_major_locator(locator)
 
+    #Fix the text box at top right of plot to show
+    #dates correctly
+    plt.gca().fmt_xdata = _format_dates_in_toolbar
+
+def _format_dates_in_toolbar(x):
+    """Fix the toolbar tooltip that shows the x and y values of the cursor so
+    that it displays full dates correctly.
+
+    Private function of fix_date_labels
+    """
+    return mdates.num2date(x).isoformat()[:19]
 
 
-# def load_figfile(filename):
-#     """Load a figure from a pickle, similar to Matlab's .fig format"""
-#     fig = plt.gcf()
-#     with open(filename, 'rb') as fp:
-#         fig = pickle.load(fp)
-#     return fig
+def label_grid(grid: np.ndarray, xPos: Iterable, yPos: Iterable, fmt:str, cmap, norm=None, **kwargs):
+    """
+    Annotate each grid cell of an image with the underlying value.
+
+    Helps make heatmaps easier to interpret.
+
+    Not tested.
+
+    Inputs
+    -------
+    grid
+        (2d np array) Data used in the heatmap image
+    xPos
+        (1d np array) Positions of the x-values of the centres of the grid cells.
+    yPos
+        (1d np array) Positions of the y-values of the centres of the grid cells.
+    fmt
+        Format string for label, eg "0.2f"
+    cmap
+        Colormap used by imshow to map values to colours
+    norm
+        Normalization object used by imshow to map values to the range 0..1. Defaults
+        to a linear norm.
+
+    Returns
+    ----------
+    **None**
+
+    """
+    norm = norm or mcolors.Normalize()
+    grid = np.array(grid)
+
+    for i, x in enumerate(xPos):
+        for j, y in enumerate(yPos):
+            val = grid[j, i]
+            clr = cmap(norm(val))
+            label_grid_square(x, y, val, fmt, clr, **kwargs)
+
+
+def label_grid_square(col: float, row:float, val:float, fmt:str, clr, **kwargs):
+    """
+    Add a text label at a specific position in a plot
+
+    Intended to be used by label grid, but pulled out as a separate function
+    in case it is useful standalong
+
+    Inputs
+    ----------
+    col, row
+        Location of grid cell
+    val
+        Numerical value of grid cell
+    fmt
+        Format string for label, eg "0.2f"
+    clr
+        Iterable with 3 or 4 elements reprsenting the colour of that cell
+
+    All optional arguments are passed to plt.text
+
+    Returns
+    ----------
+    **None**
+    """
+    textcolor='w'
+    if np.prod(clr) > .1:
+        textcolor='k'
+
+    text = fmt %(val)
+    plt.text(col, row, text, \
+        va="center",
+        ha="center",
+        bbox=None,
+        color=textcolor,
+        **kwargs,
+    )
+
 
 def load_figfile(filename):
     """Load a figure from a pickle, similar to Matlab's .fig format"""

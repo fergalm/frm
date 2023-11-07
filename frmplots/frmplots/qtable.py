@@ -22,6 +22,7 @@ class QTable(PyQt5.QtWidgets.QDialog):
 
         #I think I have to subclass QTableWidget and override keyReleaseEvent
         self.keyReleaseEvent = self.process_key_press
+        self.show()
 
     def create_layout(self, df, num, title):
         self.button = QtWidget.QPushButton("Show/hide Columns")

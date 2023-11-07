@@ -3,8 +3,30 @@
 # Quick script to check everything is ready for a PR push
 #TODO: turn this into functions
 
-srcdir=prod
+srcdir=poke
 testdir=tests 
+otherdir="bin EveningEmailCustomerTrigger MorningEmailCustomerTrigger EveningTrigger MorningTrigger HttpTrigger1"
+
+
+function apply_black
+{
+    pass=1
+    for dir in $@
+    do
+        black $dir/ --check --quiet
+        if [ $? -eq 1 ]
+        then
+            echo "WARN: Black will reformat files in $dir. This will cause git check to fail"
+            pass=0
+        fi
+        black $dir/ --quiet > /dev/null
+    done
+
+    if [ $pass -eq 1 ]
+    then
+        echo "PASS: Black did not reformat any files"
+    fi
+}
 
 
 function test_flake8
@@ -12,7 +34,7 @@ function test_flake8
     fail=0
     for dir in $@
     do
-        flake8 $dir > log.txt
+        flake8 --max-line-length=100 $dir > log.txt
         if [ -s log.txt ]
         then
             cat log.txt
@@ -74,15 +96,15 @@ function test_paths_exist
 }
 
 
-function test_uncommitted
+function test_modified
 {
     fail=0
     for dir in $@
     do
-        uncommit=`git diff --numstat $dir  | wc -l`
-        if [ $uncommit -gt  0 ]
+        mod=`git diff --numstat $dir  | wc -l`
+        if [ $mod -gt  0 ]
         then
-            echo "FAIL: $uncommit files in $dir need to be checked in"
+            echo "FAIL: $mod files in $dir need to be checked in"
             fail=1
         fi
     done 
@@ -102,48 +124,64 @@ function test_untracked
     fail=0
     for dir in $@
     do
-        untracked=`git status $dir --porcelain | grep '??' | grep -E '.py$' | wc -l`
+        untracked=`find $dir -name '*.py' | xargs git status - --porcelain | grep '??' | grep -E '.py$' | wc -l`
         if [ $untracked -gt 0 ]
         then
             git status $dir --porcelain | grep '??' | grep -E '.py$'
             echo "$untracked python files found in $dir"
             fail=1
         fi
-    
     done 
+
+    for dir in $@
+    do
+        added=`find $dir -name '*.py' | xargs git status $dir --porcelain | grep 'A' | grep -E '.py$' | wc -l`
+        if [ $added -gt 0 ]
+        then
+            git status $dir --porcelain | grep '??' | grep -E '.py$'
+            echo "$added python files found in $dir added but not commited"
+            fail=1
+        fi
+    done 
+
     
     if [[ $fail -gt 0 ]]
     then
-        echo "FAIL: Untracked python files found"
+        echo "FAIL: Untracked or added python files found"
         exit 1
     fi
     echo "PASS: All python files known to git"
 }
 
 
-function run_unit_tests
+function run_tests
 {
-    #Unit tests
+    local testdir=$1
     py.test $testdir > test.log
+
     if [[ $? -gt 0 ]]
     then 
         cat test.log 
-        echo "FAIL: Unit tests not passing"
+        echo "FAIL: Tests in $testdir not passing"
         exit 
     fi
-    echo "PASS: All tests passed"
+    echo "PASS: Tests in $testdir passed"
+    
 }
 
 
 function test_debug_statements
 {
     fail=0
+    
     for dir in $@
     do
-        count=`find $dir -name '*.py' | xargs grep '^\s*debug()' | wc -l`
+        #search=`find $dir -name '*.py' | xargs grep -Hn 'pdb'` #  | sed 's/#.*//' `
+        #search=`grep -rHn pdb $dir --include='*.py'`
+        count=`find $dir -name '*.py' | xargs  grep -Hn 'pdb' | grep -v ':#' | wc -l`
         if [[ $count -gt 0 ]]
         then
-            find $dir -name '*.py' | xargs grep -n 'debug()'
+            find $dir -name '*.py' | xargs  grep -Hn 'pdb' | grep -v ':#'
             fail=1
         fi
     done 
@@ -157,13 +195,41 @@ function test_debug_statements
 }
 
 
-test_paths_exist $srcdir $testdir
-test_pycodestyle $srcdir $testdir
-test_flake8 $srcdir $testdir 
-test_debug_statements $srcdir $testdir
-test_uncommitted $srcdir $testdir 
-test_untracked $srcdir $testdir
-run_unit_tests $testdir
+function test_config_value()
+{
+  file=poke/config.py
+  result=`grep -v '^#' $file | grep -E "email_type"`
+  grep "azure" <<< $result
+
+  if [[ $? == 0 ]]
+  then
+      echo "PASS: Emailer is set to Azure"
+  else
+      echo "FAIL: Emailer is poorly set"
+      echo $result
+      exit 1
+  fi
+}
+
+
+function set_gitlog()
+{
+    git log --decorate=full -1  --name-only > git-version.txt
+}
+
+
+test_paths_exist $srcdir $testdir $otherdir
+apply_black $srcdir $testdir $otherdir
+test_pycodestyle $srcdir $testdir $otherdir
+test_flake8 $srcdir $testdir $otherdir
+test_debug_statements $srcdir $testdir $otherdir
+test_modified $srcdir $testdir  $otherdir
+test_untracked $srcdir $testdir $otherdir
+test_config_value
+run_tests $testdir/unit 
+run_tests $testdir/integration
+run_tests $testdir/release
+set_gitlog
 echo "SUCCESS"
 
 # 

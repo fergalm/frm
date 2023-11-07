@@ -25,6 +25,8 @@ def main():
     else:
         script = find_config_script()
     
+    #import pdb; pdb.set_trace()
+    print(script, file=sys.stderr)
     with open(script) as fp:
         print(fp.read())
 

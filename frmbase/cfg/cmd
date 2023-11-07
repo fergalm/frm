@@ -55,3 +55,5 @@ echo "List all explicitly installed packages in env"
 title 'rg word | fzf'
 echo "Recursively grep for word and then do a fuzzy search on results"
 
+title journalctl
+echo "Interrogate logging system"

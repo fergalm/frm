@@ -483,6 +483,53 @@ def outline(clr='k', lw=1):
     ]
 
 
+def plotMeshGrid(df, axis1, axis2, xCol, yCol, show1=True, show2=True, annotate=False, *args, **kwargs):
+    """Draw a mesh grid between a set of connected points
+
+    Given a set of points in an x-y plane that represent computed
+    values for some underlying grid of objects, draw contours 
+    of constant values that connect the points.
+
+    The classic example is a grid of atmosphere models for a range
+    of temperature and log(g), and you want to draw lines in 
+    colour-colour space between lines of constant temperature,
+    and other lines between models of constant log(g)
+
+    Inputs
+    ---------
+    df
+        Input dataframe 
+    axis1
+        (str) The column in `df` of the first axis in model space (e.g temperature)
+    axis2
+        (str) The column in `df` of the second axis in model space (e.g logg)
+    xCol
+        (str) The column in `df` with the x-values of the plotted points
+    yCol 
+        (str) The column in `df` with the y-values of the plotted points
+
+    show1
+        (bool) Whether to show contours for `axis1`
+    show2
+        (bool) Whether to show contours for `axis2`
+    annotate
+        (bool) Whether to annotate the points (not implemented)
+
+    Other arguments are passed to `plt.plot`
+    """
+    if show1:
+        gr = df.sort_values('axis2').groupby('axis1')
+        print(gr.groups.keys())
+        gr.apply(lambda x: plt.plot(x[xCol], x[yCol], *args, **kwargs))
+
+    if show2:    
+        gr = df.sort_values('axis1').groupby('axis2')
+        print(gr.groups.keys())
+        gr.apply(lambda x: plt.plot(x[xCol], x[yCol], *args, **kwargs))
+
+    if annotate:
+        raise NotImplementedError("Annotating meshgrids isn't implemented yet")
+
 
 def plot_model_hist(model, bins, n_elt, *args, **kwargs):
     """Plot a stats model scaled so model.cdf(np.inf) == n_elt

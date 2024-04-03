@@ -44,15 +44,19 @@ how to check if the x axis is plotting dates or not
 """
 import gzip
 
+
 import matplotlib.collections as mcollect
 from matplotlib.gridspec import GridSpec
 import matplotlib.patheffects as meffect
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 import matplotlib.transforms as mtrans
 import matplotlib.colors as mcolors
 import matplotlib.ticker as mticker
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+
 import pandas as pd
 import numpy as np
 import pickle
@@ -263,6 +267,52 @@ def borderplot(x, y, *args, **kwargs):
     return ax, xh, yh
 
 
+def create_colorbar(cmap, norm=None, vmin=None, vmax=None, dates=False, fmt=None) -> mpl.colorbar.Colorbar:
+    """Create a colorbar when matplotlib refuses to
+
+    Creating a colorbar is usually as simple as calling `plt.colorbar()`. Occasionaly
+    this fails because you are trying to do something clever, and fooled matplotlib
+    so it doesn't understand what the colour range is. In such situations, this
+    function comes to the rescue
+
+    Inputs
+    ---------
+    * cmap
+        * Colormap to use. A `matplotlib.colorbar.Colorbar()` object
+
+    Optional Inputs
+    ------------------
+    * norm
+        A `matplotlib.colors.Normalize()` object that maps values to the range 0..1
+        If not supplied you must supply `vmin` and `vmax`
+    * vmin, vmax
+        (floats) The min and max values of the colorbar. If `norm` is supplied, these
+        values are ignored.
+    * dates
+        (boolean) If **True**, the tick labels are formated as dates. `vmin` and `vmax`,
+        if used, are aslo assumed to be datetime objects.
+    * fmt
+        A `matplotlib.ticker.Formatter` object used to format the tick labels. Default
+        is the scalar formater, which works well in most cases, or a DateFormatter if
+        `date=True`
+
+    Returns
+    -----------
+    A `matplotlib.colors.Colorbar()` object.
+
+    """
+
+    if norm is None and (vmin is None or vmax is None):
+        raise ValueError("Must specify either a normalisation object or a value range")
+
+    if dates:
+        vmin = mdates.date2num(vmin)
+        vmax = mdates.date2num(vmax)
+        fmt = fmt or mdates.DateFormatter("%Y-%m-%d")
+    norm = norm or Normalize(vmin, vmax)
+
+    cmappable = ScalarMappable(norm=norm, cmap=cmap)
+    return plt.colorbar(cmappable, ax=plt.gca(), format=fmt)
 
 
 def densityPlot(x,y, xBins, yBins, *args, **kwargs):

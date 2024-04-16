@@ -365,7 +365,7 @@ def fix_date_labels():
     ax.xaxis.set_major_locator(locator)
 
     #Fix the text box at top right of plot to show
-    #dates correctly
+    #dates correctly. Note, for images, use plt.gca().format_coord
     plt.gca().fmt_xdata = _format_dates_in_toolbar
 
 def _format_dates_in_toolbar(x):

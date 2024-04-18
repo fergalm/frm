@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt 
 import numpy as np 
 
+from  frmastro.psf. bbox import Bbox
 import frmastro.psf.fastgauss as fpf
 import frmastro.psf.airy as fpa  
-from  frmastro.psf. bbox import Bbox
 import frmastro.psf.fit as fit 
 
 
@@ -28,9 +28,9 @@ def test_gauss():
     diff = img - obj.get(bbox, result.x)
     assert np.all(np.fabs(diff) < 5)
     
-    plt.clf()
-    import frmastro.psf.disp as disp 
-    return disp.threeplot(img, obj, result.x)
+    # plt.clf()
+    # import frmastro.psf.disp as disp 
+    # return disp.threeplot(img, obj, result.x)
     
 
 def test_airy():

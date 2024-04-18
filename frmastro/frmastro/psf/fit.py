@@ -37,7 +37,7 @@ def fit(img: np.ndarray, model:AbstractPrfModel, initGuess: Sequence, bbox:Bbox=
         2-tuples. bounds[i] = ( min_allowed_value_for_param_i, max_allowed_value_param_i). See `scipy.optimize` for more details 
     - mask 
         - A 2d boolean numpy array with the same shape as `img`. If mask[i,j] 
-          is **True**, then the corresponding pixel in `img` is ignored for 
+          is **False**, then the corresponding pixel in `img` is ignored for 
           for the fit
     
     Returns 
@@ -51,7 +51,7 @@ def fit(img: np.ndarray, model:AbstractPrfModel, initGuess: Sequence, bbox:Bbox=
     bounds = None or model.getDefaultBounds(bbox)           
 
     if mask is None:
-        mask = np.zeros_like(img, dtype=bool)
+        mask = np.ones_like(img, dtype=bool)
 
     assert np.all(mask.shape == img.shape)
 
@@ -76,6 +76,40 @@ def fit(img: np.ndarray, model:AbstractPrfModel, initGuess: Sequence, bbox:Bbox=
     return soln
 
 
+
+def costFunc(params:Sequence, model: AbstractPrfModel, img:np.ndarray, bbox, mask) -> float:
+    """Compute a metric of difference between image and its model for given model params
+
+    Inputs
+    ----------
+    params
+        (tuple or array) Tunable parameters of model
+    img
+        (2d np array) Image to fit
+
+
+    Optional Inputs
+    ----------------
+    mask
+        (2d np array of bools) Non-zero elements of mask indicate good data 
+        which should be included in the fit
+
+
+    Returns
+    ----------
+    float
+        A positive number measuring of the goodness of fit. Lower values are better
+    """
+
+    modelImg = model.get(bbox, params)
+    diff = img - modelImg
+    diff *= mask
+
+    cost = np.sqrt(np.sum(diff ** 2))
+    assert cost > 0
+    return cost
+
+
 class Callback:
     """A useful class for printing intermediate diagnostics
 
@@ -97,39 +131,3 @@ class Callback:
         score = costFunc(xk, self.model, self.img, self.bbox, self.mask)
         print(f"Itr: {self.counter}. Score {score}: Params: {xk}")
         return False 
-
-
-def costFunc(params:Sequence, model: AbstractPrfModel, img:np.ndarray, bbox, mask=None) -> float:
-    """Compute a metric of difference between image and its model for given model params
-
-    Inputs
-    ----------
-    params
-        (tuple or array) Tunable parameters of model
-    img
-        (2d np array) Image to fit
-
-
-    Optional Inputs
-    ----------------
-    mask
-        (2d np array of bools) Non-zero elements of mask indicate bad data which should
-        not be included in the fit
-
-
-    Returns
-    ----------
-    float
-        A positive number measuring of the goodness of fit. Lower values are better
-    """
-
-    modelImg = model.get(bbox, params)
-    diff = img - modelImg
-
-    if mask is not None:
-        assert np.all(mask.shape == img.shape)
-        assert np.any(mask == 0)
-        diff[mask] = 0
-
-    cost = np.sqrt(np.sum(diff ** 2))
-    return cost

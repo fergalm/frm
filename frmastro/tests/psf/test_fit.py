@@ -50,9 +50,5 @@ def test_airy():
     print(result)
     plt.clf()
     import frmastro.psf.disp as disp 
-    print("This test is failing")
     return disp.threeplot(img, obj, result.x)
     
-
-def test_smoke():
-    assert False 

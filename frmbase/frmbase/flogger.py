@@ -82,7 +82,7 @@ class DefaultStyle(BaseStyle):
         location_str = self.get_location_str()
         date = datetime.datetime.now().strftime(date_fmt)
         output = level_clr + "%s %s %s " % (level_str, date, location_str)
-        output = output + Fore.RESET + msg
+        output = output + Fore.RESET + str(msg)
         return output
 
     def get_level_str(self, level):

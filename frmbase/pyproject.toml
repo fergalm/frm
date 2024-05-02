@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "frmbase"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Fergal <fergal.mullally@gmail.com>"]
 

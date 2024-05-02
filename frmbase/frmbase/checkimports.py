@@ -151,3 +151,8 @@ def is_builtin_module(path):
 
 def lfilter(func, vals):
     return list(filter(func, vals))
+
+
+if __name__ == "__main__":
+    import sys 
+    check_imports_for_dir(sys.argv[1])

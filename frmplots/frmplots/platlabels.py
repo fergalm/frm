@@ -181,8 +181,8 @@ class PlatLabel(AbstractPlatLabel):
         tList = sorted(self.tList, key=lambda x: x.level)
         nLabel = len(tList)
 
-        ha = "left right".split()
-        va = "bottom top".split()
+        ha = "left center right".split()
+        va = "bottom center top".split()
         placement_options = list(itertools.product(va, ha))
 
         #Hide all labels to start

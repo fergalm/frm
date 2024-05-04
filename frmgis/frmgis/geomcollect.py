@@ -123,7 +123,7 @@ class GeomCollection():
         wh = list(self.geom_tree.intersection(env))  
 
         #frac_overlap = np.zeros(self.size, dtype=float)
-        frac_overlap = pd.Series(index=self.geom_df.index)
+        frac_overlap = pd.Series(0, index=self.geom_df.index)
         #wh is a list of index locations, use .loc not .iloc
         for i in wh:
             gi = self.geom_df[self.geom_col].loc[i]

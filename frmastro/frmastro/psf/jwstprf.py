@@ -1,4 +1,4 @@
-
+from ipdb import set_trace as idebug
 from .abstractprf import AbstractPrfModel, rebin
 from astropy.io import fits as pyfits 
 import scipy.ndimage
@@ -15,9 +15,10 @@ class MiriPsf(AbstractPrfModel):
 
     def __init__(self, path, overres=1):
         fits, hdr = pyfits.getdata(path, header=True)
+        # fits /= np.sum(fits)
         overSamp = hdr['OVERSAMP']
         img = scipy.ndimage.zoom(fits, overres, order=0)
-        img /= np.sum(img)
+        # img /= np.sum(img)
         
         self.img = img 
         self.overres = overres * overSamp
@@ -36,8 +37,8 @@ class MiriPsf(AbstractPrfModel):
         img = np.copy(self.img)
         img = np.roll(img, col_roll, axis=1)  #Check this
         img = np.roll(img, row_roll, axis=0)
-        
         img = rebin(img, self.overres)
+        img /= np.max(img)
         img *= flux
         img += sky
 
@@ -62,15 +63,18 @@ class MiriPsf(AbstractPrfModel):
 
 def test():
     path = "/home/fergal/data/jwst/webbpsf-data/MIRI/psf/PSF_MIRI_in_flight_opd_filter_F1500W.fits"
-    obj = JwstPsf(path)
+    obj = MiriPsf(path, 3)
 
     bbox = Bbox(0, 0, 40, 40)
     import frmbase.support as fsupport
     with fsupport.Timer():
-        for i in range(1000):
-            img = obj.get(bbox, [20, 30, 100, 0])
+        for i in range(1):
+            img = obj.get(bbox, [20, 30, 1, 0])
 
     import matplotlib.pyplot as plt
+    import frmplots.norm as fnorm 
+    norm = fnorm.HistEquNorm(100, vmin=0, vmax=img.max())
     plt.clf()
-    plt.imshow(img, origin='lower', vmax=.01)
+    plt.imshow(img, origin='lower', norm=norm)
     plt.colorbar()
+    print(np.sum(img))

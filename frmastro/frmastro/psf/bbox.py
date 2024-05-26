@@ -14,6 +14,11 @@ class Bbox:
         self.height = row1 - row0 
         self.width = col1 - col0
 
+    def __repr__(self):
+        strr = f"<Bbox cols: ({self.col0}, {self.col1}) "
+        strr += f"rows: ({self.row0}, {self.row1})>"
+        return strr
+
     @classmethod 
     def fromSize(cls, col0, row0, width, height):
         col1 = col0 + width 

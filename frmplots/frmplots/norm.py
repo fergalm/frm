@@ -253,7 +253,7 @@ class HistEquNorm(DiscreteNorm):
         x = x[ (x >= self._vmin) & (x <= self._vmax)]
         boundaries = np.percentile(x, thresholds)
         boundaries[-1] += eps
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         boundaries = fixEqualValueBoundaries(boundaries)
         assert np.all(np.diff(boundaries) > 0), "Logic Error"

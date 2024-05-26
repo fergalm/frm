@@ -11,14 +11,18 @@ class MiriPsf(AbstractPrfModel):
     """
     Create a PRF model from WebbPsf for MIRI
 
+    The pre-launch Webb Psf calculations have been supersceded by
+    the empiricial measurments in Libralato (2024). See 
+    `.libralato.LibralatoMiri()`
+    
+    This module seems to cause some stability problems when fitting,
+
     """
 
     def __init__(self, path, overres=1):
         fits, hdr = pyfits.getdata(path, header=True)
-        # fits /= np.sum(fits)
         overSamp = hdr['OVERSAMP']
-        img = scipy.ndimage.zoom(fits, overres, order=0)
-        # img /= np.sum(img)
+        img = scipy.ndimage.zoom(fits, overres, order=1)
         
         self.img = img 
         self.overres = overres * overSamp

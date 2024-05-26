@@ -4,7 +4,7 @@ import astropy.io.fits as pyfits
 import os
 
 
-from .abstractlookup import AbstractLookupPrf, InterpImage, RegSampledPrf, SubSampledPrf
+from .abstractlookup import AbstractLookupPrf, InterpRegImage, RegSampledPrf, SubSampledPrf
 
 from typing import NewType, List
 
@@ -38,7 +38,7 @@ class KeplerPrf(AbstractLookupPrf):
         msg = msg %(self.mod, self.out, self.path)
         return msg
 
-    def getPrfAtColRow(self, col:float, row:float) -> InterpImage:
+    def getPrfAtColRow(self, col:float, row:float) -> InterpRegImage:
         """Compute the model prf for a given module, output, column row
 
         This is the workhorse function of the class. For a given mod/out,

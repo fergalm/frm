@@ -38,7 +38,7 @@ class GeomCollection():
 
     def create_tree(self):
         tree = rtree.index.Index(interleaved=False)
-        for i, row in self.geom_df.iterrows():
+        for i, row in tqdm(self.geom_df.iterrows()):
             geom  = AnyGeom(row[self.geom_col]).as_geometry()
             env = geom.GetEnvelope()
             tree.insert(i, env)
@@ -91,7 +91,7 @@ class GeomCollection():
         The value of each element is the fraction of the given geometry that 
         is inside that shape. For a collection geometry that is entirely 
         inside the union of of shapes in the dataframe, the sum of each row is 1.
-        There is such rule for the columns
+        There is no such rule for the columns
         
         Notes
         ----------

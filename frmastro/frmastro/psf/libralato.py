@@ -29,6 +29,23 @@ class LibralatoMiri(AbstractLookupPrf):
     Fits files with the data in them taken from 
     https://www.stsci.edu/~jayander/JWST1PASS/LIB/PSFs/STDPSFs/MIRI/
 
+
+    Libralato follow the pixel indexing convention used by HST and
+    inherited by Kepler, K2, and Tess. Each file contains a series
+    of oversampled PRF images, representing the PRF as observed
+    in different corners of the image. 
+    
+    Each oversampled image
+    represents the multiple realisations of the PRF for slightly
+    different sub-pixel positions. The differences represent
+    differences in sub-pixel centroid (if the centroid is
+    in the centre of a pixel, that pixel will have the highest flux,
+    but if the centroid is on the corner of a pixel, the 4
+    nearest pixels will all have the same flux), and the 
+    intra-pixel sensitivity variations.
+
+    For MIRI, 16 different sub-pixel positions are represented
+    (0.0, 0.25, 0.5, 0.75) in col and in row. 
     
     Notes
     --------------
@@ -39,6 +56,7 @@ class LibralatoMiri(AbstractLookupPrf):
     Variation in the PRF across the field of view is captured by
     having 4 prfs near the corners of the image and linearly interpolating
     between them
+
     """
 
     def __init__(self, cachePath, band="F1500W"):
@@ -65,12 +83,6 @@ class LibralatoMiri(AbstractLookupPrf):
         fits = pyfits.getdata(cacheFile)
         return fits
 
-        #Note: Fits files contain multiple PSF images for different
-        #parts of the detector. I should really be carrying these 
-        #around and interpolating between them. But for quick 
-        #and dirty work, just take a single example close to the middle.
-        #See Fig 1 of ref
-        return fits[6][:100, :100], hdr 
 
     def download(self, url, cacheFile):
         r = requests.get(url, allow_redirects=True)
@@ -84,8 +96,6 @@ class LibralatoMiri(AbstractLookupPrf):
         fracCol = col - intCol 
         fracRow = row - intRow 
 
-        
-        
         cIdx = np.arange(0, nCol - self.overSample, self.overSample, dtype=int)
         rIdx = np.arange(0, nRow - self.overSample, self.overSample, dtype=int)
         cIdx += int(np.round(fracCol * self.overSample))
@@ -114,8 +124,7 @@ class LibralatoMiri(AbstractLookupPrf):
 
 
 def test():
-    path = "/home/fergal/data/jwst/webbpsf-data/MIRI/psf/PSF_MIRI_in_flight_opd_filter_F1500W.fits"
-    obj = MiriPsf(path, 3)
+    obj = LibralatoMiri(".")
 
     bbox = Bbox(0, 0, 40, 40)
     import frmbase.support as fsupport

@@ -84,18 +84,60 @@ class AbstractLookupPrf(AbstractPrfModel):
 
     @abstractmethod 
     def getInterpRegPrfForColRow(col, row) -> InterpRegImage:
+        """Get an interpolated, regular image
+
+        Inputs
+        -----------
+        col, row (floats)
+            Location of centroid of star being modeled
+        
+        Returns
+        ------------
+        A 2d image of the PRF at this location. This image 
+        will correctly distribute the flux across pixels based
+        on the sub-pixel centroid location, and intra-pixel
+        sensitivity variations. It will also adjust the 
+        model for location on the focal plane.
+
+        The details of how this are done depend on the telescope,
+        instrument, and model being used. 
+        """
         pass 
 
     def get(self, bbox:Bbox, params:Sequence) -> CroppedImage:
-        """The model PRF at the requested location.
+        """Produce The model PRF at the requested location.
 
-        params = [col, row]
+        Inputs
+        ---------
+        bbox (Bbox):
+            A bounding box describing the subset of the 
+            CCD to produce a model image for. Producing
+            an image for the entire CCD is expensive and 
+            unecessary (and frequently makes fitting more 
+            difficult). Instead, specify a useful sub region
+            of the CCD.
+        params (list):
+            All lookup-based PRFs take 4 parameters 
+            * column
+            * row 
+            * flux
+            * sky
+
+        Flux is defined as the integrated flux over the entire
+        PRF (in whatever units are appropriate). Sky 
+        is defined as background flux per pixel 
+
+        Returns
+        --------------
+        A 2d image with shape defined by the input `Bbox`, containing
+        a model of the star with the requested parameters
         """
 
-        assert len(params) == 3
-        col, row, flux = params 
-        interpPrf = self.getInterpRegPrfAtColRow(col, row)
+        assert len(params) == 4
+        col, row, flux, sky = params 
+        interpPrf = self.getInterpRegPrfForColRow(col, row)
         interpPrf *= flux / np.sum(interpPrf)
+        interpPrf += sky
 
         image = self.placePrfInBbox(bbox, interpPrf, col, row)
         return image

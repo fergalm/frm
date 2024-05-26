@@ -16,6 +16,10 @@ class MiriPsf(AbstractPrfModel):
     `.libralato.LibralatoMiri()`
     
     This module seems to cause some stability problems when fitting,
+    and it's use is not recommended.
+
+    PSF files can be obtained from 
+    https://stsci.app.box.com/v/jwst-simulated-psf-library/file/1025341829373
 
     """
 

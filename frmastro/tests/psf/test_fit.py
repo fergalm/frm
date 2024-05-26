@@ -47,8 +47,8 @@ def test_airy():
 
     params = [20., 20.0, flux, sigma, sky]
     result = fit.fit(img, obj, params, bbox)
-    print(result)
-    plt.clf()
-    import frmastro.psf.disp as disp 
-    return disp.threeplot(img, obj, result.x)
+    # print(result)
+    # plt.clf()
+    # import frmastro.psf.disp as disp 
+    # return disp.threeplot(img, obj, result.x)
     

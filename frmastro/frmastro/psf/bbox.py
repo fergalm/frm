@@ -4,6 +4,22 @@ class Bbox:
     """A bounding box 
     
     Used for selecting portions of images
+    
+    Notes
+    ------------
+    There are multiple ways to define a bounding box,
+    including 
+    ```
+    col0, row0, col1, row1
+    col0, col1, row0, row1
+    col0, row0, width, height
+    ```
+
+    One way will seem "natural" when you are writing your code, but
+    entirely non-obvious to everyone else. Don't create a bbox
+    by calling __init__ direction, but use one of the classmethods
+    instead, which help you keep the conventions straight
+    
     """
     
     def __init__(self, col0, row0, col1, row1):
@@ -19,6 +35,13 @@ class Bbox:
         strr += f"rows: ({self.row0}, {self.row1})>"
         return strr
 
+    @classmethod
+    def fromCCRR(cls, col0, col1, row0, row1):
+        return cls(col0, row0, col1, row1)
+    
+    def fromCRCR(cls, col0, row0, col1, row1):
+        return cls(col0, row0, col1, row1)
+    
     @classmethod 
     def fromSize(cls, col0, row0, width, height):
         col1 = col0 + width 

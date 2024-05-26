@@ -28,6 +28,7 @@ SubsampledPrf
 """
 
 from ipdb import set_trace as idebug
+from pprint import pprint 
 import numpy as np
 
 from .abstractprf import AbstractPrfModel
@@ -52,7 +53,7 @@ RegSampledPrf = NewType('RegSampledPrf', np.ndarray)
 
 #The interpolated image typically has 11x11 pixels, and is formed by interpolating the RegSampledPrf
 #objects
-InterpImage = NewType('InterpImage', np.ndarray)
+InterpRegImage = NewType('InterpImage', np.ndarray)
 
 #The cropped image extracts only the pixels in the bbox from the InterpImage
 CroppedImage = NewType('CroppedImage', np.ndarray)
@@ -82,7 +83,7 @@ class AbstractLookupPrf(AbstractPrfModel):
         self.cache = dict()
 
     @abstractmethod 
-    def getInterpPrfForColRow(col, row) -> InterpImage:
+    def getInterpRegPrfForColRow(col, row) -> InterpRegImage:
         pass 
 
     def get(self, bbox:Bbox, params:Sequence) -> CroppedImage:
@@ -91,22 +92,30 @@ class AbstractLookupPrf(AbstractPrfModel):
         params = [col, row]
         """
 
-        assert len(params) == 2 
-        col, row = params 
+        assert len(params) == 3
+        col, row, flux = params 
+        interpPrf = self.getInterpRegPrfAtColRow(col, row)
+        interpPrf *= flux / np.sum(interpPrf)
 
+        image = self.placePrfInBbox(bbox, interpPrf, col, row)
+        return image
+
+    def placePrfInBbox(self, bbox: Bbox, prfImg: InterpRegImage, col, row):
+        nRowPrf, nColPrf = prfImg.shape
         nRowOut, nColOut = bbox.shape
         imgOut = np.zeros( (nRowOut, nColOut) )
 
         #Location of origin of bbox relative to col,row.
-        #This is usually zero, but need not be.
-        colOffsetOut = (bbox[0] - np.floor(col)).astype(np.int)
-        rowOffsetOut = (bbox[2] - np.floor(row)).astype(np.int)
+        # colOffsetOut = (bbox[0] - np.floor(col)).astype(np.int)
+        # rowOffsetOut = (bbox[2] - np.floor(row)).astype(np.int)
+        colOffsetOut = (bbox.col0 - np.floor(col)).astype(np.int)
+        rowOffsetOut = (bbox.row0 - np.floor(row)).astype(np.int)
 
-        interpPrf = self.getPrfAtColRow(col, row, *args)
-        nRowPrf, nColPrf = interpPrf.shape
+        #Offset of origin of prf Image from col, row
         colOffsetPrf = -np.floor(nColPrf/2.).astype(np.int)
         rowOffsetPrf = -np.floor(nRowPrf/2.).astype(np.int)
 
+        # pprint(locals())
         di = colOffsetPrf - colOffsetOut
         i0 = max(0, -di)
         i1 = min(nColOut-di , nColPrf)
@@ -125,7 +134,7 @@ class AbstractLookupPrf(AbstractPrfModel):
 
         #@TODO: figure out how to do this in one step
         for r in j:
-            imgOut[r+dj, i+di] = interpPrf[r, i]
+            imgOut[r+dj, i+di] = prfImg[r, i]
 
         return imgOut
 
@@ -135,56 +144,11 @@ class AbstractLookupPrf(AbstractPrfModel):
         bounds = [
             (0, nc),
             (0, nr),
+            (0, None),
         ]
         return bounds
 
 
-# def loadFitsFiles(self, flist):
-#     out = []
-
-#     for f in flist:
-#         out.append(self.loadSingleImage(f))
-#     return out
-
-
-# def loadSingleImage(self, imageSubPath):
-#     """
-#     Look for the image first in memory, then on disk, then on the web.
-
-#     The image should be expected to exist at both
-#     self.path + imageSubPath and self.url + imageSubPath
-
-#     Returns
-#     ------
-#     A numpy 2d array
-#     """
-
-#     key = imageSubPath
-#     if key not in self.imgCache:
-#         cache_path = os.path.join(self.path, imageSubPath)
-
-#         if not os.path.exists(cache_path):
-#             url = os.path.join(self.url, imageSubPath)
-#             self.download(url, cache_path)
-#         self.imgCache[key] = pyfits.getdata(cache_path)
-
-#     img = self.imgCache[key]
-#     assert img.ndim == 2
-#     return img
-
-
-# def download(self, remoteUrl, local):
-#     """Download the file at `remoteUrl` to the path `local` on disk"""
-
-#     localDir = os.path.split(local)[0]
-#     if not os.path.exists(localDir):
-#         os.makedirs(localDir)
-
-#     r = requests.get(remoteUrl, allow_redirects=True)
-#     if r.status_code == requests.codes.ok:
-#         open(local, 'wb').write(r.content)
-#     else:
-#         raise IOError("Failed to download %s" %(remoteUrl))
     
 
 

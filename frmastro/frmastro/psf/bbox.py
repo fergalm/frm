@@ -39,6 +39,7 @@ class Bbox:
     def fromCCRR(cls, col0, col1, row0, row1):
         return cls(col0, row0, col1, row1)
     
+    @classmethod
     def fromCRCR(cls, col0, row0, col1, row1):
         return cls(col0, row0, col1, row1)
     

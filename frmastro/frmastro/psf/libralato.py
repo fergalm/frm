@@ -1,7 +1,6 @@
 from ipdb import set_trace as idebug
-from .abstractprf import AbstractPrfModel, rebin
 from astropy.io import fits as pyfits 
-import scipy.ndimage
+import scipy.ndimage as spImg
 import numpy as np
 import requests
 import os 
@@ -10,7 +9,7 @@ from typing import Sequence
 from .bbox import Bbox 
 
 
-from .abstractlookup import AbstractLookupPrf, InterpRegImage, RegSampledPrf, SubSampledPrf
+from .abstractlookup import AbstractLookupPrf, InterpRegImage, CroppedImage
 from typing import List, NewType
 
 
@@ -59,9 +58,10 @@ class LibralatoMiri(AbstractLookupPrf):
 
     """
 
-    def __init__(self, cachePath, band="F1500W"):
+    def __init__(self, cachePath, band="F1500W", refnum=5):
         """
         """
+        self.refnum = refnum
         self.band = band 
         self.url = "https://www.stsci.edu/~jayander/JWST1PASS/LIB/PSFs/STDPSFs/MIRI/"
         self.overSample = 4  #Note (1, 2)
@@ -89,24 +89,60 @@ class LibralatoMiri(AbstractLookupPrf):
         r.raise_for_status()
         open(cacheFile, 'wb').write(r.content)
 
-    def getInterpRegPrfForColRow(self, col:float, row:float)-> InterpRegImage:
-        nExample, nCol, nRow = self.subSampledPrfCube.shape
+
+    def get(self, bbox:Bbox, params:Sequence) -> CroppedImage:
+        img = AbstractLookupPrf.get(self, bbox, params)
+        img = spImg.gaussian_filter(img, params[-1], mode='constant')
+        return img
+
+    def getModelPrfForColRow(self, col:float, row:float)-> InterpRegImage:
+        _, nCol, nRow = self.subSampledPrfCube.shape
         intCol = int(np.floor(col))
         intRow = int(np.floor(row))
         fracCol = col - intCol 
         fracRow = row - intRow 
 
-        cIdx = np.arange(0, nCol - self.overSample, self.overSample, dtype=int)
-        rIdx = np.arange(0, nRow - self.overSample, self.overSample, dtype=int)
-        cIdx += int(np.round(fracCol * self.overSample))
-        rIdx += int(np.round(fracRow * self.overSample))
+        #Get the indices of a single image
+        ov = self.overSample
+        cIdx = np.arange(ov, nCol, ov, dtype=int)
+        rIdx = np.arange(ov, nRow, ov, dtype=int)
+        cIdx -= 2
+        rIdx -= 2
         cIdx, rIdx = np.meshgrid(cIdx, rIdx)
         
-        regSamplePrfCube = self.subSampledPrfCube[:, cIdx, rIdx] 
-        #Interpolate to get a single prf  
-        #to do this we need to know locs of interpolated images
-        #this is a placeholder
-        return regSamplePrfCube[6, :, :]
+        #Extract out a single PRF image for a single position
+        img = self.subSampledPrfCube[self.refnum, rIdx, cIdx] 
+
+        dcol = (col) % 1
+        drow = (row) % 1
+
+        img = spImg.shift(img, (drow, dcol), order=3)
+        return img
+              
+
+    # def getInterpRegPrfForColRow(self, col:float, row:float)-> InterpRegImage:
+    #     _, nCol, nRow = self.subSampledPrfCube.shape
+    #     intCol = int(np.floor(col))
+    #     intRow = int(np.floor(row))
+    #     fracCol = col - intCol 
+    #     fracRow = row - intRow 
+
+    #     ov = self.overSample
+    #     cIdx = np.arange(ov, nCol, ov, dtype=int)
+    #     rIdx = np.arange(ov, nRow, ov, dtype=int)
+    #     cIdx -= int(np.floor(fracCol * ov))
+    #     rIdx -= int(np.floor(fracRow * ov))
+    #     print(int(np.floor(fracCol * ov)))
+    #     print(int(np.floor(fracRow * ov)))
+    #     cIdx, rIdx = np.meshgrid(cIdx, rIdx)
+        
+    #     regSamplePrfCube = self.subSampledPrfCube[:, rIdx, cIdx] 
+    #     #Interpolate to get a single prf  
+    #     #to do this we need to know locs of interpolated images
+    #     #this is a placeholder
+    #     img = regSamplePrfCube[6, :, :]
+
+    #     return img
               
 
     def getDefaultBounds(self, img):
@@ -117,6 +153,7 @@ class LibralatoMiri(AbstractLookupPrf):
             (0, nr),    #row within the height of the image
             (None, None),   #No limits on flux level
             (None, None),   #no limits on sky level
+            (0, 2),   #rms of gaussin blue, in pixels
         ]
         return bounds
 

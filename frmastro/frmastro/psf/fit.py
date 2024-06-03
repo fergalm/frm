@@ -63,15 +63,16 @@ def fit(img: np.ndarray, model:AbstractPrfModel, initGuess: Sequence, bbox:Bbox=
     model.get(bbox, initGuess)
     
     callback = Callback(model, img, bbox, mask)
-    
+
     soln = spOpt.minimize(
         costFunc, 
         initGuess, 
         args=(model, img, bbox, mask), 
-        method="L-BFGS-B", 
+        # method="L-BFGS-B",
+        method = 'Nelder-Mead', 
         bounds=bounds,
         # callback=callback,
-        # options = {'disp': True}
+        options = {'disp': True}
     )
     return soln
 

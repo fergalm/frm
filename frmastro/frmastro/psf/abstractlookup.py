@@ -149,16 +149,13 @@ class AbstractLookupPrf(AbstractPrfModel):
         imgOut = np.zeros( (nRowOut, nColOut) )
 
         #Location of origin of bbox relative to col,row.
-        # colOffsetOut = (bbox[0] - np.floor(col)).astype(np.int)
-        # rowOffsetOut = (bbox[2] - np.floor(row)).astype(np.int)
-        colOffsetOut = (bbox.col0 - np.floor(col)).astype(np.int)
-        rowOffsetOut = (bbox.row0 - np.floor(row)).astype(np.int)
+        colOffsetOut = (bbox.col0 - np.floor(col)).astype(int)
+        rowOffsetOut = (bbox.row0 - np.floor(row)).astype(int)
 
         #Offset of origin of prf Image from col, row
-        colOffsetPrf = -np.floor(nColPrf/2.).astype(np.int)
-        rowOffsetPrf = -np.floor(nRowPrf/2.).astype(np.int)
+        colOffsetPrf = -np.floor(nColPrf/2.).astype(int)
+        rowOffsetPrf = -np.floor(nRowPrf/2.).astype(int)
 
-        # pprint(locals())
         di = colOffsetPrf - colOffsetOut
         i0 = max(0, -di)
         i1 = min(nColOut-di , nColPrf)

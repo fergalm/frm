@@ -96,6 +96,21 @@ class LibralatoMiri(AbstractLookupPrf):
         return img
 
     def getModelPrfForColRow(self, col:float, row:float)-> InterpRegImage:
+        """Get a single model realisation
+
+        This is a very cheap and cheerful approach. I should
+        * Choose the correct sub pixel position
+        * Create regular images at each of the corners
+        * Interpolate to my exact fractional pixel position for each image
+        * Interpolate between the images for my integer pixel position
+
+        Instead, I just pick one regular image from all my options
+        and use it. It works well enough for my purposes, and it's
+        not clear the extra effort will produce superior results
+        given that I have to smooth the model image to make it 
+        fit my data (See `get()` above) 
+
+        """
         _, nCol, nRow = self.subSampledPrfCube.shape
         intCol = int(np.floor(col))
         intRow = int(np.floor(row))

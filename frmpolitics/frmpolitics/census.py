@@ -471,6 +471,9 @@ class TigerQuery():
         fips_alias = self.get_fips_alias_in_shapefile(year)
         df = get_geom.load_geoms_as_df(zip_file, fips_alias)
 
+        if 'GEOID20' in df.columns:
+            df = df.rename({'GEOID20': 'GEOID'}, axis=1)
+
         source = osr.SpatialReference()
         source.ImportFromEPSG(4269)  #NADS83
         dest = osr.SpatialReference()

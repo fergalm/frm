@@ -153,7 +153,7 @@ def plot_shape(shape, *args, **kwargs):
         return plt.plot(shape[:,0], shape[:,1], *args, **kwargs)
 
 
-def plot_shape_collection(geoms, *args, **kwargs):
+def plot_shape_collection(geoms, *ars, **kwargs):
     """Plot multiple shapes
 
     If you only have the one shape to plot, look at `plot_shape()` instead.

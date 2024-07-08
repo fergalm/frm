@@ -411,7 +411,7 @@ def printh(num:float, unit:str = None) -> str:
     order -= int(order % 3)  #Round to the nearest multiple of three
     modifier = postfix[order]
     val = num * 10**(-order)
-    text = "%.2f %s%s" %(val, modifier, unit)
+    text = "%.3f %s%s" %(val, modifier, unit)
     return text
 
 

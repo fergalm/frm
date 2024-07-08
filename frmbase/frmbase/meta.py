@@ -284,7 +284,7 @@ def get_git_info(filename) -> dict:
 
 
 
-def get_git_repo(filename) -> str:
+def get_git_repo(filename) -> git.Repo:
     sep = os.path.sep
     tokens = filename.split(sep)
 

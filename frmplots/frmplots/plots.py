@@ -887,9 +887,12 @@ def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
     #casting works around issues with dates
     # peaks = plateau(diff.astype(float) > gap_size, .5)
     peaks = plateau(diff > gap_size, .5)
-    # import ipdb; ipdb.set_trace()
 
-    peaks = np.concatenate([[int(0)], peaks.flatten(), [int(len(x))]]).reshape(-1, 2).astype(int)
+    if len(peaks) == 0:
+        peaks = [ [0, len(x)] ]
+    else:
+        peaks = np.concatenate([[int(0)], peaks.flatten(), [int(len(x))]]).reshape(-1, 2).astype(int)
+
     for p in peaks:
         lwr, upr = p
         plt.plot(x[lwr:upr], y[lwr:upr], *args, **kwargs)

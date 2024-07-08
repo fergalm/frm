@@ -36,7 +36,7 @@ else
 	topLevelPath=`git rev-parse --show-toplevel`
 	#relPath=`sed 's|'$topLevelPath'|.|' <<< $PWD`
 	relPath=`awk -F '/' '{print $NF}' <<< $PWD`
-	PS1="Lios $CONDA_PROMPT_MODIFIER $currentBranch::$relPath> "
+	PS1="Lios $CONDA_PROMPT_MODIFIER $VIRTUAL_ENV $currentBranch::$relPath> "
 fi
 
 export PS1

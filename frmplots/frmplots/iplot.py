@@ -179,3 +179,62 @@ class Crosshairs:
             self.vertical_line.set_xdata(x)
             self.text.set_text('x=%1.2f, y=%1.2f' % (x, y))
             self.ax.figure.canvas.draw()
+
+
+class SnaptoCursor:
+    """
+    A cursor with crosshair snaps to the nearest x point.
+    For simplicity, I'm assuming x is sorted.
+
+    Adapted from https://stackoverflow.com/questions/14338051/matplotlib-cursor-snap-to-plotted-data-with-datetime-axis
+
+    This class needs some work to make it more general. It should ideally work with
+    * Normal values and Timestamps
+    * numpy arrays and pandas series
+    * select x and or y cursor lines
+
+
+    Usage
+    -----------
+    ```
+    cursor = SnapToCursor(plt.gca(), x, y)
+    plt.connect('motion_notify_event', cursor.on_mouse_move)
+    ```
+
+    """
+    def __init__(self, ax, x, y):
+        """
+        ax: plot axis
+        x: plot spacing. Numpy array of timestamps (series won't work)
+        y: plot data
+        """
+        self.ax = ax
+        self.lx = ax.axhline(y = min(y), color = 'k')  #the horiz line
+        self.ly = ax.axvline(x = min(x), color = 'k')  #the vert line
+        self.x = x
+        self.y = y
+
+
+    def on_mouse_move(self, event):
+        if not event.inaxes:
+            return
+
+        # import datetime, matplotlib.dates as mdates
+        mouseX, mouseY = event.xdata, event.ydata
+
+        #searchsorted: returns an index or indices that suggest where mouseX should be inserted
+        #so that the order of the list self.x would be preserved
+        #This line assumes self.x is a date. I should generalize
+        indx = np.searchsorted(mdates.date2num(self.x), mouseX)
+        #if indx is out of bounds
+        if indx >= len(self.x):
+            indx = len(self.x) - 1
+
+        mouseX = self.x[indx]
+        mouseY = self.y[indx]
+
+        self.ly.set_xdata(mouseX)
+
+        # self.txt.set_text(self.format(mouseX, mouseY))
+        plt.gca().fmt_xdata = lambda y: pd.to_datetime(self.x[indx]).isoformat()[:19]
+        plt.draw()

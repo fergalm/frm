@@ -103,7 +103,7 @@ def costFunc(params:Sequence, model: AbstractPrfModel, img:np.ndarray, bbox, mas
 
     modelImg = model.get(bbox, params)
     diff = img - modelImg
-    diff *= mask
+    diff[~mask] = 0
 
     cost = np.sqrt(np.sum(diff ** 2))
     assert cost > 0

@@ -11,7 +11,14 @@ import numpy as np
 import requests
 import os
 
-from .abstractlookup import InterpImage, RegSampledPrf, SubSampledPrf, CroppedImage
+from .abstractlookup import (
+    InterpRegImage, 
+    RegSampledPrf, 
+    SubSampledPrf, 
+    CroppedImage,
+    interpolatePrf,
+)
+
 from typing import Tuple , NewType, List
 
 Array1d = NewType('Array1d', np.ndarray)
@@ -20,6 +27,9 @@ Array1d = NewType('Array1d', np.ndarray)
 
 class TessFitsPrf(AbstractTess):
     """
+
+    PRF object backed by fits files (as opposed to one backed by 
+    some matlab .mat files)
 
     Notes
     -------
@@ -81,16 +91,18 @@ class TessFitsPrf(AbstractTess):
         assert np.all(np.diff(self.modelLocs[:,1]) >= 0)
 
 
-    def getInterpPrfForColRow(self, col: float, row: float) -> InterpImage:
+    def getInterpRegPrfForColRow(self, col: float, row: float) -> InterpRegImage:
         col = float(col)
         row = float(row)
 
         brCol, brRow = self.getBracketingPixelPositions(col, row)
         subSampledImgList = self.getBracketingImages(brCol, brRow)
 
-        subSampledModel = self.interpolatePrf(subSampledImgList,
-                                              col, row,
-                                              brCol, brRow)
+        subSampledModel = interpolatePrf(
+            subSampledImgList,
+            col, row,
+            brCol, brRow
+        )
 
         regSampledModel =  self.getRegularPrfFromSubsampledPrf(subSampledModel,
                                                                col, row)
@@ -167,9 +179,10 @@ class TessFitsPrf(AbstractTess):
         assert len(brCol) == len(brRow)
         #This is the portion of the path (excluding the filename) that
         #is shared between the remote url and the cached location on disk
-        imageSubPath = os.path.join("tess",
-                                    "start_s%04i" %(self.sector),
-                                    "cam%i_ccd%i" %(self.camera, self.ccd))
+        imageSubPath = os.path.join(
+            "start_s%04i" %(self.sector),
+            "cam%i_ccd%i" %(self.camera, self.ccd)
+        )
 
         fitsDateStr = self.getFitsDateStr(self.sector)
 
@@ -196,7 +209,7 @@ class TessFitsPrf(AbstractTess):
         """
         if sector == 4:
             return '2019107181900'
-        return '2018243163601'
+        return '2018243163600'
 
 
     def loadFitsFiles(self, flist):
@@ -245,4 +258,4 @@ def download(remoteUrl, local) -> None:
     if r.status_code == requests.codes.ok:
         open(local, 'wb').write(r.content)
     else:
-        raise IOError("Failed to download %s" %(remoteUrl))
+        raise OSError("Failed to download %s" %(remoteUrl))

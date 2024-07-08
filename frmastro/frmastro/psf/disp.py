@@ -60,9 +60,6 @@ def plotImage(img, **kwargs):
     if "cmap" not in kwargs:
         kwargs["cmap"] = plt.cm.YlGnBu_r
 
-    if "norm" not in kwargs:
-        kwargs["norm"] = mcolor.Normalize()
-
     if "extent" not in kwargs:
         shape = img.shape
         extent = [0, shape[1], 0, shape[0]]
@@ -73,6 +70,11 @@ def plotImage(img, **kwargs):
     mask = kwargs.pop('mask', None)
     showValues = kwargs.pop("showValues", False)
     log = kwargs.pop("log", False)
+
+    vmin = kwargs.pop('vmin', None)
+    vmax = kwargs.pop('vmax', None)
+    if "norm" not in kwargs:
+        kwargs["norm"] = mcolor.Normalize(vmin, vmax)
 
     if log:
         img = img.copy()
@@ -257,7 +259,7 @@ def threeplot(img:np.ndarray, modelFunc:Callable, guess:Iterable, norm=None, vma
     diff = img - model 
 
     ax1 = plt.subplot(131)
-    plotImage(img, norm=norm)
+    plotImage(img, norm=q)
 
     ax2 = plt.subplot(132, sharex=ax1, sharey=ax1)
     plotImage(model, norm=norm)

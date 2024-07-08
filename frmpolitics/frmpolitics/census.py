@@ -302,7 +302,60 @@ class TigerQuery():
         #For some reason, the name of the FIPS columns in the
         #shapefiles changes between versions
         self.fips_alias_in_shpfile = "NOT DEFINED"
+        
+        if not os.path.exists(cache):
+            try:
+                os.mkdir(cache)
+            except OSError as e:
+                raise OSError(f"Cache directory {cache} does not exist and couldn't be created")
 
+    def query_county(self, year, fips):
+        """Query for all tracts in a state for a given year
+
+        Inputs
+        ----------
+        year
+            (int or string). Not all years have data available.
+        fips
+            (int or str) FIPS code of the tract to query. Only the first two
+            digits (the state id) are used, the rest is ignored
+
+        Returns
+        ---------
+        A dataframe with columns of NAME and geom. geom contains
+        geometry objects, not WKTs.
+        """
+        state = explode_fips(fips)[0]
+        ftype, year, state = self.santize_inputs('county', year, state)
+        df =  self.query(ftype, year, state)
+        return df[df.STATEFP == state].copy()
+            
+
+    def query_congress(self, year, fips):
+        """
+        Before 2022, congressional districts are stored in a single file.
+        AFter 2022 they are stored one file per state.
+        
+        I want to abstract over this difference. 
+        
+        This is a draft of such a code, but it needs to be cleaned
+        up some, I think
+        
+
+        """
+        state = explode_fips(fips)[0]
+        
+        #2020 is the 117th congress
+        congress = int(np.floor(year/2) - 893)
+        ftype = f"cd{congress}"
+        fn = self.get_filename(ftype, year, "us")
+
+        df =  self.query(ftype, year, state)
+        try:
+            return df[df.STATEFP == state].copy()
+        except KeyError:
+            return df[df.STATEFP20 == state].copy()
+        
     def query_tract(self, year, fips):
         """Query for all tracts in a state for a given year
 
@@ -381,6 +434,7 @@ class TigerQuery():
     def download(self, ftype, year, state, county=None):
         fn = self.get_filename(ftype, year, state, county)
         url = self.make_url(year, ftype, county, fn)
+        print(url)
 
         cache_file = self.get_cache_path(ftype, year, state, county)
         r = requests.get(url)
@@ -392,7 +446,13 @@ class TigerQuery():
         return cache_file
 
     def make_url(self, year, ftype, county, fn):
-        if county is None:
+        #idebug()
+        if ftype[:2].upper() == 'CD':
+            url = os.path.join(self.url,
+                            f"TIGER{year}",
+                            f"CD",
+                            fn)
+        elif county is None:
             url = os.path.join(self.url,
                             f"TIGER{year}",
                             f"{ftype.upper()}",
@@ -459,7 +519,11 @@ class TigerQueryAcs(TigerQuery):
         TigerQuery.__init__(self, cache_path)
         # self.fips_alias_in_shpfile = "GEOID"
 
-    def get_filename(self, ftype, year, state, county):
+	#tl_2020_us_cd116.zip	
+    def get_filename(self, ftype, year, state, county=None):
+        if ftype.upper() == "COUNTY":
+            return f"tl_{year}_us_county.zip"
+        
         fn = f"tl_{year}_{state}_{ftype.lower()}.zip"
         return fn
 

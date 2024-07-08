@@ -107,11 +107,13 @@ def chloropleth(polygons, values, **kwargs):
     return pc, cb
 
 
-
-
 def plot_shape(shape, *args, **kwargs):
-    """Plot the outline of a shape
+    """Plot the outline of a single shape
 
+    This is a helpful one-off function. If you have a lot of shapes to draw
+    look at `plot_shape_collection()` instead.
+    
+    
     Inputs
     ------------
     shape
@@ -149,3 +151,63 @@ def plot_shape(shape, *args, **kwargs):
     else:
         shape = np.atleast_2d(shape)
         return plt.plot(shape[:,0], shape[:,1], *args, **kwargs)
+
+
+def plot_shape_collection(geoms, *args, **kwargs):
+    """Plot multiple shapes
+
+    If you only have the one shape to plot, look at `plot_shape()` instead.
+    
+    Inputs
+    ------------
+    shape
+        Ogr geometry object. Can be any single Ogr object (e.g a point,
+        a line, or a polygon). Only really tested on ploygons
+        and multi-polygons
+
+    Optional Inputs
+    --------------
+    Passed directly to `matplotlib.pyplot.plot`
+
+    Returns
+    -------------
+    **None**
+
+    Output
+    ---------
+    Draws to the current matplotlib axis
+    """
+
+    #Setup some defaults
+    if 'facecolor' not in kwargs:
+        kwargs['facecolor'] = "none"
+
+    if 'edgecolor' not in kwargs:
+        kwargs['edgecolor'] = 'C0'
+        
+    if 'lw' not in kwargs:
+        kwargs['lw'] = 2 
+        
+    ##Work around matplotlib bug. Patches won't display unless something 
+    ##else is plotted to the screen.
+    #g0 = geoms[0]
+    #_, points = AnyGeom(g0).as_array()
+    #plt.plot(points[:,0], points[:,1], 'w.', zorder=-100) #color='r', lw=1)
+    
+    from tqdm import tqdm
+    bbox_list = []
+    patch_list = []
+    for g in tqdm(geoms):
+        ap = AnyGeom(g)
+        patch = ap.as_patch(**kwargs)
+        bbox_list.append( patch[0].get_extents() )
+        patch_list.extend(patch)
+    pc = mcollect.PatchCollection(patch_list, match_original=True)
+
+    #Plot the patchlist
+    ax = plt.gca()
+    ax.add_collection(pc)
+
+    from matplotlib.transforms import Bbox
+    bbox = Bbox.union(bbox_list)
+    plt.plot([bbox.x0, bbox.x1], [bbox.y0, bbox.y1], 'w.', zorder=-100)

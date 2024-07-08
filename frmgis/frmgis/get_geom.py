@@ -102,7 +102,9 @@ def get_geometries(*shapefile_or_archive, **kwargs):
     geometries = []
     is_shapefile = lambda file_name: bool(RE_SHAPEFILE.match(file_name))
     for file_name in shapefile_or_archive:
-        if is_archive(file_name):
+        if is_geojson(file_name):
+            geometries.extend(_get_geometries_from_shapefile(file_name))
+        elif is_archive(file_name):
             tempdir = extract_all(file_name)
             try:
                 shapefiles = find(tempdir, RE_SHAPEFILE)
@@ -204,6 +206,9 @@ def is_archive(file_name):
             return extension
     return False
 
+def is_geojson(file_name):
+    if file_name.endswith(".geojson.gz"):
+        return True     
 
 def extract_all(archive_file_name, location=None):
     """

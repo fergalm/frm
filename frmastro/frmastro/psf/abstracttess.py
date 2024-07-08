@@ -11,7 +11,7 @@ contains common code for reading both.
 from pdb import set_trace as debug
 import numpy as np
 
-from .abstractlookup import AbstractLookupPrf, InterpImage, RegSampledPrf, SubSampledPrf, CroppedImage
+from .abstractlookup import AbstractLookupPrf, InterpRegImage, RegSampledPrf, SubSampledPrf, CroppedImage
 from .abstractprf import Bbox
 from typing import Sequence
 
@@ -48,7 +48,7 @@ class AbstractTess(AbstractLookupPrf):
 
 
     def validateInputs(self, params:list) -> None:
-        col, row = params
+        col, row = params[:2]
         if col < 45 or col > 2091:
             raise ValueError("Requested column (%i) not on phyiscal CCD [45,2091]" %(col))
 

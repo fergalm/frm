@@ -50,7 +50,6 @@ def run_expt(expt_name, func, *args, **kwargs):
     try:
         result = func(*args, **kwargs)
     except Exception as e:
-        #move_new_files(before_state, expt_name)
         move_new_files(expt_name, start_time)
         touch(error_filename)
         raise e 

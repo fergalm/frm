@@ -99,6 +99,41 @@ def chomp(string):
     return string
 
 
+def ensure_is_in_timezone(date: pd.Series, tz: str, naive_tz='UTC') -> pd.Series:
+    """Ensure the dates are in the expected timezone
+
+    This function handles both timezone-naive timestamps and timezone
+    aware timestamps in the wrong timezone.
+
+    If the timezone is naive, assume that it represents UTC. This
+    may not be what you want in all cases.
+
+    Inputs
+    ---------
+    date: pd.Series
+        A Pandas series contain dates as the values. This will not work if
+        the dates are in the index
+    tz: str
+        The desired timezone, e.g "America/New_York", or "Europe/Dublin"
+        See the [timezone database](https://en.wikipedia.org/wiki/Tz_database)
+    naive_tz: str
+        If the input dates are naive, i.e have no associated timezone,
+        treat them as if they are in this timezone.
+
+    Returns
+    -----------
+    A timezone aware series of datetimes in the desired timezone. Note that
+    input series is not modified by this function. Also, the return series is always
+    a copy of the input, even if no changes are needed.
+    """
+    date = date.copy()
+    if date[0].tz is None:
+        date = date.dt.tz_localize(naive_tz).dt.tz_convert(tz)
+    elif date[0].tz != tz:
+        date = date.dt.tz_convert(tz)
+    return date
+
+
 def int_to_bin_str(arr):
     """Convert a 32bit int (or numpy array of ints) to a bit string
 
@@ -376,7 +411,7 @@ def printh(num:float, unit:str = None) -> str:
     order -= int(order % 3)  #Round to the nearest multiple of three
     modifier = postfix[order]
     val = num * 10**(-order)
-    text = "%.2f %s%s" %(val, modifier, unit)
+    text = "%.3f %s%s" %(val, modifier, unit)
     return text
 
 

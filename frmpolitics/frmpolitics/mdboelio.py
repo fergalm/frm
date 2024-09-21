@@ -17,9 +17,8 @@ I've only done some of the columns. If you
 need another column done, make sure you 
 make it consistent across all years.
 
-BoEl does not make this easy.
-
-This is a work in progress.
+Note that precinct boundaries change between
+2020 and 2022.
 """
 
 import pandas as pd 

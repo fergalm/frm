@@ -3,6 +3,37 @@ import matplotlib.pyplot as plt
 from astropy.wcs.wcs import WCS as Wcs
 import numpy as np 
 
+def plotCompassRoseNorthUp(col0, row0, clr='g', length_pix=100, east="left"):
+    """Plot a compass rose for the "default" orientation of North up.
+
+    The standard orientation for displaying astronomical images is
+    with North pointing  up, and East pointing to the left. If 
+    this is the case for your image, you can use this function
+    to annotate your image with a compass without mucking around 
+    with the WCS. 
+
+    Inputs
+    -----------
+    col0, row0 (floats)
+        Centre of compass rose on the image in units of pixels.
+    clr (str)
+        Colour of compass rose 
+    length_pix (float)
+        Length of North arrow in units of pixels 
+    east (string)
+        if "right", plot the east arrow pointing right instead of 
+        left (the default).
+
+
+    """
+    northVec = np.array([0, 1])
+    eastVec = np.array([-1, 0])
+
+    if east == "right":
+        eastVec *= -1 
+
+    plotArrows(col0, row0, northVec, eastVec, length_pix, clr)
+
 def plotCompassRose(wcs, col0=None, row0=None, clr='g', length_pix=100):
     """
     Plot a compass rose indicating North and East on an image
@@ -37,7 +68,10 @@ def plotCompassRose(wcs, col0=None, row0=None, clr='g', length_pix=100):
     row0 = row0 or wcs['CRPIX'][1]
     northVec, eastVec = getCompassPoints(wcs)
 
-    #Style the arrows
+    plotArrows(col0, row0, northVec, eastVec, length_pix, clr)
+
+
+def plotArrows(col0, row0, northVec, eastVec, length_pix, clr='g'):
     props =dict(
         edgecolor=clr,
         arrowstyle= '<-',
@@ -46,18 +80,17 @@ def plotCompassRose(wcs, col0=None, row0=None, clr='g', length_pix=100):
     #Draw North Vector
     dc = float(length_pix*northVec[0])
     dr = float(length_pix*northVec[1])
-    plt.annotate("N", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr)
+    plt.annotate("N", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr, ha='center')
 
     #Draw East Vector
     dc = float(length_pix*eastVec[0])
     dr = float(length_pix*eastVec[1])
-    plt.annotate("E", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr)
+    plt.annotate("E", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr, va='center')
 
     patch = plt.Circle((col0, row0), radius = (length_pix/5), fc="None", ec=clr)
     plt.gca().add_patch(patch)
     patch = plt.Circle((col0, row0), radius = (length_pix/20), fc=clr)
     plt.gca().add_patch(patch)
-
 
 
 def getImageRotationFromNorth(wcs):

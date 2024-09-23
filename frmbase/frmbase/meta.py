@@ -21,6 +21,8 @@ import pandas as pd
 import os
 import re
 
+from typing import List
+
 try:
     import git 
     _GIT_PYTHON_INSTALLED = True
@@ -103,6 +105,39 @@ def save_state(statefile, **kwargs):
         fp.write(jsonstr)
 
 
+StrOrDict = str | dict
+def metadata_to_textlist(meta: StrOrDict, indent=1) -> List[str]:
+    """Convert a metadata dictionary to a list of strings prepended by a "#".
+
+    This format is not parsable, but is helpful for creating human readable
+    headers to text files
+
+    Inputs
+    -------------
+    meta
+        Either a dictionary of strings and dicts, or a json string
+
+    indent
+        Used internally to indent keys in sub-dictionaries. Leave this one alone
+
+    """
+    if isinstance(meta, str):
+        meta = json.loads(meta)
+
+    hdr = []
+    for k in meta:
+        val = meta[k]
+        if isinstance(val, dict):
+            hdr.append("#" + " "*indent + str(k) + ":" )
+            hdr.extend( metadata_to_textlist(val, indent+4))
+            continue
+        elif isinstance(val, str):
+            val = re.subn(r"\n", r"\n#", val)[0]
+        hdr.append("#" + " "*indent + "%s: %s" % (k, val))
+    # hdr.append("\n\n")
+    return hdr
+
+    
 def save_metadata(statefile, **kwargs):
     """Save some metadata to a json file
 

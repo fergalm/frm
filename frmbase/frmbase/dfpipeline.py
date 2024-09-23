@@ -1,4 +1,5 @@
 from ipdb import set_trace as idebug
+import pandas.api.types as ptypes
 import pandas as pd
 import numpy as np
 
@@ -579,6 +580,50 @@ class SetDayNum(AbstractStep):
         daynum = (jd - jd0).astype(self.dtype)
         df[self.daynumcol] = daynum
         return df 
+
+
+class SetTimeZone(AbstractStep):
+    """Set the timezone of a columne in a dataframe"""
+        
+    def __init__(self, col, tzname:str, origtz:str=None):
+        """
+        Inputs
+        -------------
+        col
+            Name of column to work on
+        tzname
+            Name of timezone to convert to (e.g America/New_York)
+        origtz
+            If the input time is naive (i.e it has no timezone information associated with it
+            assume the input times are in this timezone.
+        """
+        self.col = col
+        self.tzname = tzname
+        self.origtz=origtz
+
+    def __repr__(self):
+        local = ""
+        if origtz:
+            local = f", assuming input is {self.origtz}"
+        return f"<frm.dfpipeline.SetTimeZone(Converting {self.col} to {self.tzname}{local}.)>"
+
+    def apply(self, df:pd.DataFrame):
+        df = df.copy()
+        col = self.col
+
+        #Convert to a datetime if necessary
+        df[col] = pd.to_datetime(df[col])
+        assert ptypes.is_datetime64_any_dtype(df[col]), f"Failed to convert column {col} to datetime type"
+
+        #If no timezone information available, define the origin timezone here
+        if self.origtz is not None:
+            df[col] = df[col].dt.tz_localize(self.origtz)
+
+        try:
+            df[col] = df[col].dt.tz_convert(self.tzname)
+        except TypeError:
+            raise TypeError("Input datetime is naive. Set origtz to the timezone input is assumed to be")
+        return df
 
 
 class Sort(AbstractStep):

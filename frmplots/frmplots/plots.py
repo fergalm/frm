@@ -565,6 +565,19 @@ def mark_weekends(timestamps, tz='UTC'):
         pass
 
 
+def mark_alternate_time_intervals(timestamps, freq, label=None):
+    t1 = min(timestamps).round(freq)
+    t2 = max(timestamps)
+
+    delta = pd.to_timedelta(freq)
+    dates = pd.date_range(t1, t2, freq=freq)
+    for i in range(0, len(dates), 2):
+        handle = plt.axvspan(dates[i], dates[i] + delta, color='b', alpha=.1)
+
+    if label:
+        handle.set_label(label)
+
+
 def mark_nights(timestamps, tz='UTC'):
     """Plot grey bars to indicate night time in the central timezone"""
     t1 = min(timestamps)
@@ -768,6 +781,7 @@ def monthly_plot(df, *args, plotter=None, datecol='date', ycol='val', **kwargs):
     plt.subplots_adjust(wspace=0)
     return grid.iloc[0]  #Is a dictionary
 
+
 def _plot_single_month(df, plotter, datecol,  *args, **kwargs):
     """Private function of `monthly_plot`"""
     #Pick the correct subplot
@@ -865,9 +879,10 @@ def plot_with_discrete_cb(func, *args, **kwargs):
     return function_handle, cb_handle
 
 from frmbase.plateau import plateau
-def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
+def plot_with_gaps(x, y, *args, gap_size=None, func=plt.plot, **kwargs):
     """Plot a timeseries skipping over any gaps.
     Useful for linecharts where the x values are not regularly spaced.
+
     Inputs
     -------
     same as plt.plot except for the keyword argument gap_size
@@ -875,6 +890,11 @@ def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
     then no connector is drawn between them.
 
     The default gapsize is 1% the span of the data
+
+    func
+        Default is plt.plot. Any function with the signature func(x, y, *args, **kwargs)
+        can be specified here
+        
     Note
     ------
     If the x value is in datetime format, gap_size should be be pd.to_timedelta()
@@ -895,7 +915,7 @@ def plot_with_gaps(x, y, *args, gap_size=None, **kwargs):
 
     for p in peaks:
         lwr, upr = p
-        plt.plot(x[lwr:upr], y[lwr:upr], *args, **kwargs)
+        func(x[lwr:upr], y[lwr:upr], *args, **kwargs)
 
 
 def ternary(v1, v2, v3, labels=None, **kwargs):

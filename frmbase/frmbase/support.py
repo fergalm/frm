@@ -41,6 +41,26 @@ if 'HOME' not in os.environ:
     except KeyError:
         pass 
 
+def create_chunks(array, chunksize):
+    """Split an array into smaller chunks.
+
+    Helpful when processing a large batch of very small jobs in parallel.
+    Break the list into chunks and process in chunk in parallel.
+
+    In Python >3.12 you should use itertools.batch instead
+    """
+    if chunksize < 1:
+        raise ValueError("chunksize must be at least 1")
+
+    bounds = np.arange(0, len(array), chunksize)
+    bounds = np.append(bounds, [len(array)])
+    out = []
+    for i in range(len(bounds)-1):
+        lwr = bounds[i]
+        upr = bounds[i+1]
+        out.append(array[lwr:upr])
+    return out
+
 
 
 def check_cols_in_df(df: pd.DataFrame, cols: list) -> bool:

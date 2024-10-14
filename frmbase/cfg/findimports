@@ -13,13 +13,15 @@ fi
 #find $dirlist -name '*.py' | grep -v 'venv' | xargs grep import | awk -F ':' '{print $2}' | cut -f 2 -d ' ' | sort | uniq | less
 
 
-find . -name '*.py'        |  #Find all python files
-    grep -v venv           |  #Ignore venv, if it exists   \
-    xargs grep import      |  #Grep for every import statement \
-    sed 's/#.*//'          |  # Filter out comments, if needed\
-    awk -F':' '{print $2}' |  #Strip out the filename from the output\
-    sed 's/^from//'        |  #Remove the word "from", e.g from foo import bar\
-    sed 's/import//'       |  #Remove the work import \
-    sed 's/\./ /g'         |  #Replace the dot from subpackages with a space\
-    awk '{print $1}'       |  #Take only the top level package\
-    sort | uniq               #Remove duplicates
+find . -name '*.py'          |  #Find all python files
+    grep -v venv             |  #Ignore venv, if it exists   \
+    xargs grep import        |  #Grep for every import statement \
+    sed 's/#.*//'            |  # Filter out comments, if needed\
+    awk -F':' '{print $2}'   |  #Strip out the filename from the output\
+    sed 's/^[[:space:]]*//'  |  #Remove leading whitespace
+    sed 's/^from//'          |  #Remove the word "from", e.g from foo import bar\
+    sed 's/import//'         |  #Remove the work import \
+    sed 's/\./ /g'           |  #Replace the dot from subpackages with a space\
+    awk '{print $1}'         |  #Take only the top level package\
+    sort | uniq              |  #Remove duplicates
+    cat                         #Identity operator

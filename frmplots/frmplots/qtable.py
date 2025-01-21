@@ -1,4 +1,4 @@
-from ipdb import set_trace as idebug
+# from ipdb import set_trace as idebug
 
 import PyQt5.QtWidgets as QtWidget
 import PyQt5.QtCore as QtCore

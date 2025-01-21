@@ -105,7 +105,7 @@ def save_state(statefile, **kwargs):
         fp.write(jsonstr)
 
 
-StrOrDict = str | dict
+StrOrDict = str # | dict
 def metadata_to_textlist(meta: StrOrDict, indent=1) -> List[str]:
     """Convert a metadata dictionary to a list of strings prepended by a "#".
 

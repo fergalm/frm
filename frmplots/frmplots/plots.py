@@ -137,9 +137,10 @@ def annotate_histogram(vals, bins, **kwargs):
     #Define some default values
     fmt = kwargs.pop('fmt', '%g')
     ha = kwargs.pop('ha', 'center')
-    offset = kwargs.pop('offset', .02)
+    offset = kwargs.pop('offset', 1)
     offset_sign = 2* kwargs.pop('above', True) - 1
     jitter = kwargs.pop('jitter', .04)
+    fontsize = kwargs.pop('fontsize', 12)
 
     va = kwargs.pop('va', None)
     if va is None:
@@ -153,21 +154,37 @@ def annotate_histogram(vals, bins, **kwargs):
     elif len(bins) == len(vals) + 1:
         locs = bins[:-1] + .5* np.diff(bins)
 
-    scale = np.max(vals) - np.min(vals)
-    offset = (offset * scale * offset_sign) + jitter * scale
-    sign = -1
-    old = 0
-    for xpos, val in zip(locs, vals):
-        if val <= 0:
-            continue 
-
-        ypos = val + offset
-        if np.fabs(ypos - old) < offset:
-            ypos += sign * offset 
-            sign *= -1
+    # scale = np.max(vals) - np.min(vals)
+    # offset = (offset * scale * offset_sign) + jitter * scale
+    # sign = -1
+    # old = 0
+    # for xpos, val in zip(locs, vals):
+    #     if val <= 0:
+    #         continue 
+    # 
+    #     ypos = val + offset
+    #     if np.fabs(ypos - old) < offset:
+    #         ypos += sign * offset 
+    #         sign *= -1
         
-        old = ypos 
-        plt.text(xpos, ypos + offset, fmt%(val), ha=ha, va=va, **kwargs)
+    # old = ypos 
+    # plt.text(xpos, ypos + offset, fmt%(val), ha=ha, va=va, **kwargs)
+
+    import matplotlib.transforms as mtransforms
+    pointsPerInch = 72
+    rnd = np.random.rand()
+    offset_points = offset_sign * (offset + jitter*rnd) * fontsize/pointsPerInch
+    trans = mtransforms.offset_copy(plt.gca().transData, fig=plt.gcf(), y=offset_points, units='inches')
+    # print(offset_points)
+    # import ipdb; ipdb.set_trace()
+
+    for xpos, val in zip(locs, vals):
+        rnd = np.random.rand()
+        offset_points = offset_sign * (offset + jitter*rnd) * fontsize/pointsPerInch
+
+        trans = mtransforms.offset_copy(plt.gca().transData, fig=plt.gcf(), y=offset_points, units='inches')
+
+        plt.text(xpos, val, fmt%(val), ha=ha, va=va, transform=trans, fontsize=fontsize, **kwargs)
 
 
 def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
@@ -565,8 +582,8 @@ def mark_weekends(timestamps, tz='UTC'):
         pass
 
 
-def mark_alternate_time_intervals(timestamps, freq, label=None):
-    t1 = min(timestamps).round(freq)
+def mark_alternate_time_intervals(timestamps, freq, start=None, label=None):
+    t1 = start or min(timestamps).round(freq)
     t2 = max(timestamps)
 
     delta = pd.to_timedelta(freq)

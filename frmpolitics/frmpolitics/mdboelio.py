@@ -17,8 +17,15 @@ I've only done some of the columns. If you
 need another column done, make sure you 
 make it consistent across all years.
 
-Note that precinct boundaries change between
+Notes
+----------
+* Precinct boundaries change between
 2020 and 2022.
+
+* 2020-2024 loaders verify that a minimum set of
+columns are present. You should add similar logic
+to the other loaders
+
 """
 
 import pandas as pd 
@@ -69,6 +76,8 @@ def parseMdBoElPrecinctResults(df, year:int):
     return parseFunc(df)
 
 
+
+
 def parser2022(df):
     """Also does double duty as the 2024 parser"""
     mapper = {
@@ -84,19 +93,56 @@ def parser2022(df):
         # 'Winner',
         'Early Votes': 'Early',
         'Early Voting Votes': 'Early',
-        'Election Night Votes': 'DOIP',
-        'Election Day Votes': 'DOIP',
+        'Election Night Votes': 'Doip',
+        'Election Day Votes': 'Doip',
+        'Mail-In Ballot 1 Votes': 'MailIn1',
+        'By Mail Votes': 'MailIn1',
+        'Provisional Votes': 'Provisional',
+        'Prov. Votes': 'Provisional',
+        'Mail-In Ballot 2 Votes': 'MailIn2', 
+    }
+
+    df = df.rename(mapper, axis=1)
+    df['TotalVote'] = df.Early + df.Doip + df.Provisional + df.MailIn1 
+    if 'MailIn2' in df.columns:
+        df['TotalVote'] += df.MailIn2
+
+    validate_df_out(df)
+    return df
+
+
+def parse2020(df):
+    mapper = {
+        'County': 'CountyFips', 
+        'County Name': 'County', 
+        'Election District': 'District',
+        'Election Precinct': 'Precinct',# 'Congressional',
+        # 'Legislative',
+        'Office Name': 'Office',
+        'Candidate Name': 'Candidate',
+        # 'Party',
+        # 'Winner',
+        'Early Votes': 'Early',
+        'Early Voting Votes': 'Early',
+        'Election Night Votes': 'Doip',
+        'Election Day Votes': 'Doip',
         'Mail-In Ballot 1 Votes': 'MailIn1',
         'By Mail Votes': 'MailIn1',
         'Provisional Votes': 'Provisional',
         'Prov. Votes': 'Provisional',
         'Mail-In Ballot 2 Votes ': 'MailIn2', 
+        'By Mail 2 Votes': 'MailIn2',
     }
 
+    def _foo(row):
+        return "%02i-%03i" %(row.District, row.Precinct)
+
     df = df.rename(mapper, axis=1)
-    df['TotalVote'] = df.Early + df.DOIP + df.Provisional + df.MailIn1 
-    if 'MailIn2' in df.columns:
-        df['TotalVote'] += df.MailIn2
+    df['Precinct'] = df.apply(_foo, axis=1)
+    df['County'] = "Empty"
+    df['TotalVote'] = df.Early + df.Doip + df.Provisional + df.MailIn1 + df.MailIn2
+    
+    validate_df_out(df)
     return df
 
 
@@ -124,7 +170,7 @@ def parse2018(df):
     }
 
     def _foo(row):
-        return "%03i-%03i" %(row.District, row.Precinct)
+        return "%02i-%03i" %(row.District, row.Precinct)
 
     df = df.rename(mapper, axis=1)
     df['Precinct'] = df.apply(_foo, axis=1)
@@ -143,7 +189,7 @@ def parse2014(df):
     }
 
     def _foo(row):
-        return "%03i-%03i" %(row.District, row.Precinct)
+        return "%02i-%03i" %(row.District, row.Precinct)
 
     df = df.rename(mapper, axis=1)
     df['Precinct'] = df.apply(_foo, axis=1)
@@ -151,34 +197,32 @@ def parse2014(df):
     return df
 
 
+def validate_df_out(df):
+    cols = df.columns
+    
+    missing_cols = set(load_schema().keys()) - set(cols)
+    if len(missing_cols) > 0:
+        msg = f"Expected columns not found: {missing_cols}"
+        raise ValueError(msg)
 
-def parse2020(df):
-    mapper = {
-        'County': 'CountyFips', 
-        'County Name': 'County', 
-        'Election District': 'District',
-        'Election Precinct': 'Precinct',# 'Congressional',
-        # 'Legislative',
-        'Office Name': 'Office',
-        'Candidate Name': 'Candidate',
-        # 'Party',
-        # 'Winner',
-        'Early Votes': 'Early',
-        'Early Voting Votes': 'Early',
-        'Election Night Votes': 'DOIP',
-        'Election Day Votes': 'DOIP',
-        'Mail-In Ballot 1 Votes': 'MailIn1',
-        'By Mail Votes': 'MailIn1',
-        'Provisional Votes': 'Provisional',
-        'Prov. Votes': 'Provisional',
-        'Mail-In Ballot 2 Votes ': 'MailIn2', 
-        'By Mail 2 Votes': 'MailIn2',
-    }
 
-    def _foo(row):
-        return "%03i-%03i" %(row.District, row.Precinct)
+def load_schema():
+   
+   keys = """
+        CountyFips
+        County
+        Precinct 
+        Office
+        Early 
+        Doip
+        MailIn1
+        MailIn2
+        Provisional
+        """.split()
+   
+   out = dict()
+   for k in keys:
+       out[k] = None 
+   return out 
 
-    df = df.rename(mapper, axis=1)
-    df['Precinct'] = df.apply(_foo, axis=1)
-    df['TotalVote'] = df.Early + df.DOIP + df.Provisional + df.MailIn1 + df.MailIn2
-    return df
+

@@ -2,6 +2,7 @@ from ipdb import set_trace as idebug
 from pprint import pprint
 import numpy as np
 import requests
+import re 
 
 from frmbase.support import npregex, lmap
 from .abstractgeocoder import AbstractGeocoder
@@ -56,25 +57,9 @@ class CensusGeoCoder(AbstractGeocoder):
 
         #Extract out district information
         geographies = result['geographies']
-        keys = list(geographies.keys())
-        
-        #Get FIPs
-        wh = np.where(npregex("Census Blocks", keys))[0][0]
-        key = keys[wh]
-        out['fips'] = geographies[key][0]['GEOID']
-
-        #Get Congressional. Is returned as, e.g 2402
-        #First two digits are state id, second are district id
-        # idebug()
-        wh = np.where(npregex("Congressional", keys))[0][0]
-        key = keys[wh]
-        out['Congress'] = geographies[key][0]['GEOID']
-
-        #Get Statehouse. May only work in Maryland
-        wh = np.where(npregex("Legislative Districts - Lower", keys))[0][0]
-        key = keys[wh]
-        out['Leg'] = geographies[key][0]['BASENAME']
+        out.update( parseGeographies(geographies) )
         return out
+
 
     def parse(self, result):
         """This assumes only one address gets returned"""
@@ -98,42 +83,60 @@ class CensusGeoCoder(AbstractGeocoder):
 
         #Extract out district information
         geographies = match['geographies']
-        keys = list(geographies.keys())
+        out.update( parseGeographies(geographies) )
+        # keys = list(geographies.keys())
         
-        #Get FIPs
-        wh = np.where(npregex("Census Blocks", keys))[0][0]
-        key = keys[wh]
-        out['fips'] = geographies[key][0]['GEOID']
+        # #Get FIPs
+        # wh = np.where(npregex("Census Blocks", keys))[0][0]
+        # key = keys[wh]
+        # out['fips'] = geographies[key][0]['GEOID']
 
-        #Get Congressional. Is returned as, e.g 2402
-        #First two digits are state id, second are district id
-        # idebug()
-        wh = np.where(npregex("Congressional", keys))[0][0]
-        key = keys[wh]
-        out['Congress'] = geographies[key][0]['GEOID']
+        # #Get Congressional. Is returned as, e.g 2402
+        # #First two digits are state id, second are district id
+        # # idebug()
+        # wh = np.where(npregex("Congressional", keys))[0][0]
+        # key = keys[wh]
+        # out['Congress'] = geographies[key][0]['GEOID']
 
-        #Get Statehouse. May only work in Maryland
-        wh = np.where(npregex("Legislative Districts - Lower", keys))[0][0]
-        key = keys[wh]
-        out['Leg'] = geographies[key][0]['BASENAME']
+        # #Get Statehouse. May only work in Maryland
+        # wh = np.where(npregex("Legislative Districts - Lower", keys))[0][0]
+        # key = keys[wh]
+        # out['Leg'] = geographies[key][0]['BASENAME']
+
+        # #Get County. May only work in Maryland
+        # wh = np.where(npregex("County", keys))[0][0]
+        # key = keys[wh]
+        # out['County'] = geographies[key][0]['BASENAME']
 
         return out 
 
-"""
 
-?address=135%20Dublin%20Drive%2C%20Maryland&benchmark=4&vintage=4
+def parseGeographies(geographies: dict):
+    out = {}
+    keys = list(geographies.keys())
+    
+    #Get FIPs
+    wh = np.where(npregex("Census Blocks", keys))[0][0]
+    key = keys[wh]
+    out['fips'] = geographies[key][0]['GEOID']
 
-returntype="geographies"
-searchtype="onelineaddress"
-parameters=address=... (spaces allowd, comman to %2c)
+    #Get Congressional. Is returned as, e.g 2402
+    #First two digits are state id, second are district id
+    # idebug()
+    wh = np.where(npregex("Congressional", keys))[0][0]
+    key = keys[wh]
+    out['Congress'] = geographies[key][0]['GEOID']
 
-&benchmark=4&vintage=4
+    #Get Statehouse. May only work in Maryland
+    wh = np.where(npregex("Legislative Districts - Lower", keys))[0][0]
+    key = keys[wh]
+    out['Leg'] = geographies[key][0]['BASENAME']
 
-https://geocoding.geo.census.gov/geocoder/{returntype}/{searchtype}?{parameters}
+    #Get County. May only work in Maryland
+    wh = np.where(npregex("Counties", keys))[0][0]
+    key = keys[wh]
+    county = geographies[key][0]['NAME']
+    county = re.sub("[ ',\.]", "", county)
+    out['County'] = county
 
-
-https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=135%20Dublin%20Drive%2C%20Maryland&benchmark=4&vintage=4
-
-
-benchmark=Public_AR_Current&vintage=Current_Current&layers=10&format=json    
-"""
+    return out 

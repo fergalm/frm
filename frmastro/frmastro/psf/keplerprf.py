@@ -38,7 +38,7 @@ class KeplerPrf(AbstractLookupPrf):
         msg = msg %(self.mod, self.out, self.path)
         return msg
 
-    def getInterpRegPrfForColRow(self, col:float, row:float) -> InterpRegImage:
+    def getModelPrfForColRow(self, col:float, row:float) -> InterpRegImage:
         """Compute the model prf for a given module, output, column row
 
         This is the workhorse function of the class. For a given mod/out,

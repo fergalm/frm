@@ -325,7 +325,7 @@ def computeErrorEllipse(col: Arr,row: Arr, flag:Arr = None):
 
     sigma_a = 2 * np.linalg.norm(sma)  #Full width, not semi-width
     sigma_b = 2 * np.linalg.norm(smi)
-    angle_deg = np.degrees(np.arctan2(sma[1], sma[0]))
+    angle_deg = compute_angle_noe(sma)
 
     out = {
         'centre_col': mu_c,
@@ -337,6 +337,10 @@ def computeErrorEllipse(col: Arr,row: Arr, flag:Arr = None):
         'semiminor_vec': smi,
     }
     return out
+
+def compute_angle_noe(sma):
+    angle_deg = np.degrees(np.arctan2(sma[1], sma[0]))
+    return angle_deg
 
 def compute_offset_and_signif(col, row):
     """Compute the mean offset of a set of points from the origin

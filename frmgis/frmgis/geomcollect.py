@@ -28,7 +28,7 @@ class GeomCollection():
     """
     def __init__(self, geom_df, name_col="name", geom_col="geom"):
         self.size = len(geom_df)
-        self.geom_df = geom_df.copy()
+        self.geom_df = geom_df.reset_index().copy()
         self.name_col = name_col
         self.geom_col = geom_col
 

@@ -68,7 +68,7 @@ def plotImage(img, **kwargs):
     colorbar = kwargs.pop('colorbar', True)
 
     mask = kwargs.pop('mask', None)
-    showValues = kwargs.pop("showValues", False)
+    showValues = kwargs.pop("showValues", None)
     log = kwargs.pop("log", False)
 
     vmin = kwargs.pop('vmin', None)
@@ -93,8 +93,8 @@ def plotImage(img, **kwargs):
         plt.sci(axim)
 
 
-    if showValues:
-        showPixelValues(img, kwargs["cmap"], kwargs["norm"])
+    if showValues is not None:
+        showPixelValues(img, kwargs["cmap"], kwargs["norm"], fmt=showValues)
 
     if colorbar:
         plt.colorbar()
@@ -131,7 +131,7 @@ def showPixelValues(img, cmap, norm, fmt="%i"):
                 textcolor = "k"
 
             txt = fmt % (img[j, i])
-            plt.text(i + 0.5, j + 0.5, txt, color=textcolor, ha="center")
+            plt.text(i + 0.5, j + 0.5, txt, color=textcolor, ha="center", clip_on=True)
 
 
 def plotDifferenceImage(img, **kwargs):
@@ -147,6 +147,12 @@ def plotDifferenceImage(img, **kwargs):
     vmax
         Max (and -min) value to display in the colormap.
 
+    Optional Inputs
+    -------------------
+    log (bool)
+        If **True** a SymmetricLog normalization is used. Note that
+        the choice of normalization can be specicified with the 
+        'norm' optional argument.
         
     All other arguments are passed to `plt.plot`
 
@@ -172,6 +178,13 @@ def plotDifferenceImage(img, **kwargs):
     vm = kwargs.pop('vmax', None)
     if vm is None:
         vm = max(np.fabs([np.min(img), np.max(img)]))
+
+    if "norm" not in kwargs:
+        if kwargs.pop('log', False):
+            norm = mcolor.SymLogNorm(.1, vmin=vm, vmax=vm)
+        else:
+            norm = mcolor.Normalize(vmin=vm, vmax=vm)
+        kwargs['norm'] = norm
 
     plt.imshow(img, **kwargs)
     plt.colorbar()
@@ -210,7 +223,15 @@ def plotCentroidLocation(col:float, row:float, **kwargs):
              mew=mew, ms=ms, lw=0, **kwargs)
 
 
-def threeplot(img:np.ndarray, modelFunc:Callable, guess:Iterable, norm=None, vmax=None):
+def threeplot(
+    img:np.ndarray, 
+    modelFunc:Callable, 
+    guess:Iterable, 
+    bbox=None, 
+    norm=None, 
+    vmax=None, 
+    log=True,
+    showValues=None):
     """
     Plot an image, a model of that image, and the residual.
 
@@ -232,10 +253,17 @@ def threeplot(img:np.ndarray, modelFunc:Callable, guess:Iterable, norm=None, vma
         modelFunc returns a 2d numpy array of shape (nr, nc)
     guess
         A list of parameters to pass to modelFunc
+    bbox
+        `frmastro.psf.bbox.Bbox` object. If supplied, is used to set 
+        the "extent" of the image
     norm
         A `matplotlib.colors.Normalize()` object used for setting
         the plotting scale of the image and model displays.
-
+    vmax (float)
+        Min/Max range of colorbar for difference image
+    log (bool)
+        If **True**, plot the residuals with a log scaling
+        
     Returns
     -----------
     A `matplotlib.widgets.MultiCursor` object. Note interactivity
@@ -253,19 +281,22 @@ def threeplot(img:np.ndarray, modelFunc:Callable, guess:Iterable, norm=None, vma
 
     """
     from .abstractprf import Bbox
-    bbox = Bbox.fromImage(img)
-    model = modelFunc(bbox, guess)
 
+    if bbox is None:
+        bbox = Bbox.fromImage(img)
+    extent = bbox.asExtent()
+
+    model = modelFunc(bbox, guess)
     diff = img - model 
 
     ax1 = plt.subplot(131)
-    plotImage(img, norm=q)
-
+    plotImage(img, norm=norm, showValues=showValues)
+    
     ax2 = plt.subplot(132, sharex=ax1, sharey=ax1)
-    plotImage(model, norm=norm)
+    plotImage(model, norm=norm, extent=extent, showValues=showValues)
 
     ax3 = plt.subplot(133, sharex=ax1, sharey=ax1)
-    plotDiffImage(diff, vmax=vmax)
+    plotDiffImage(diff, vmax=vmax, log=log)
 
     from matplotlib.widgets import MultiCursor 
     canvas = plt.gcf().canvas

@@ -39,6 +39,7 @@ class Bbox:
     def fromCCRR(cls, col0, col1, row0, row1):
         return cls(col0, row0, col1, row1)
     
+    @classmethod
     def fromCRCR(cls, col0, row0, col1, row1):
         return cls(col0, row0, col1, row1)
     
@@ -57,6 +58,29 @@ class Bbox:
     def shape(self):
         return (self.height, self.width)  #Numpy style
 
+    @property
+    def bottomLeft(self):
+        return (self.col0, self.row0)
+    
+    @property 
+    def topRight(self):
+        return (self.col1, self.row1)
+    
+    @property
+    def asSlices(self):
+        """Return the bounding box as a tuple of slices
+
+        Example
+        -------------
+        ```
+            slr, slc = bbox.asSlices 
+            image[slr, slc] = 0
+        ```
+        """
+        cols = slice(self.col0, self.col0 + self.width)
+        rows = slice(self.row0, self.row0 + self.height)
+        return rows, cols
+
     def asExtent(self):
         """Return corners as matplotlib's imshow expects the extent keyword"""
         return [self.col0, self.col1, self.row0, self.row1]
@@ -70,3 +94,20 @@ class Bbox:
         r1 = int(min(self.row1, nr))
 
         return img[r0:r1, c0:c1]
+
+    def contains(self, bbox):
+        """Not tested"""
+        if self.col0 < bbox.col0 and self.row0 < bbox.row0:
+            if self.width > bbox.width and self.height > bbox.height:
+                return True 
+        return False 
+
+    def overlaps(self, bbox):
+        raise NotImplemented
+    
+    def isInside(self, bbox):
+        """Not tested"""
+        if self.col0 > bbox.col0 and self.row0 > bbox.row0:
+            if self.width < bbox.width and self.height < bbox.height:
+                return True 
+        return False 

@@ -83,7 +83,7 @@ class AbstractLookupPrf(AbstractPrfModel):
         self.cache = dict()
 
     @abstractmethod 
-    def getInterpRegPrfForColRow(col, row) -> InterpRegImage:
+    def getModelPrfForColRow(col, row) -> InterpRegImage:
         """Get an interpolated, regular image
 
         Inputs
@@ -133,31 +133,29 @@ class AbstractLookupPrf(AbstractPrfModel):
         a model of the star with the requested parameters
         """
 
-        assert len(params) == 4
-        col, row, flux, sky = params 
-        interpPrf = self.getInterpRegPrfForColRow(col, row)
-        interpPrf *= flux / np.sum(interpPrf)
-        interpPrf += sky
+        assert len(params) >= 2
+        col, row, flux, sky = params[:4]
+        interpPrf = self.getModelPrfForColRow(col, row)
+        interpPrf *= flux / np.max(interpPrf)
 
-        image = self.placePrfInBbox(bbox, interpPrf, col, row)
+        # import ipdb; ipdb.set_trace()
+        image = self.placePrfInBbox(bbox, interpPrf, col, row, sky)
         return image
 
-    def placePrfInBbox(self, bbox: Bbox, prfImg: InterpRegImage, col, row):
+    def placePrfInBbox(self, bbox: Bbox, prfImg: InterpRegImage, col, row, sky):
         nRowPrf, nColPrf = prfImg.shape
         nRowOut, nColOut = bbox.shape
+        # imgOut = sky * np.ones( (nRowOut, nColOut) )
         imgOut = np.zeros( (nRowOut, nColOut) )
 
         #Location of origin of bbox relative to col,row.
-        # colOffsetOut = (bbox[0] - np.floor(col)).astype(np.int)
-        # rowOffsetOut = (bbox[2] - np.floor(row)).astype(np.int)
-        colOffsetOut = (bbox.col0 - np.floor(col)).astype(np.int)
-        rowOffsetOut = (bbox.row0 - np.floor(row)).astype(np.int)
+        colOffsetOut = (bbox.col0 - np.floor(col)).astype(int)
+        rowOffsetOut = (bbox.row0 - np.floor(row)).astype(int)
 
         #Offset of origin of prf Image from col, row
-        colOffsetPrf = -np.floor(nColPrf/2.).astype(np.int)
-        rowOffsetPrf = -np.floor(nRowPrf/2.).astype(np.int)
+        colOffsetPrf = -np.floor(nColPrf/2.).astype(int)
+        rowOffsetPrf = -np.floor(nRowPrf/2.).astype(int)
 
-        # pprint(locals())
         di = colOffsetPrf - colOffsetOut
         i0 = max(0, -di)
         i1 = min(nColOut-di , nColPrf)
@@ -178,6 +176,7 @@ class AbstractLookupPrf(AbstractPrfModel):
         for r in j:
             imgOut[r+dj, i+di] = prfImg[r, i]
 
+        imgOut += sky
         return imgOut
 
 

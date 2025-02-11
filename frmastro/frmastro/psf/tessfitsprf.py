@@ -91,7 +91,7 @@ class TessFitsPrf(AbstractTess):
         assert np.all(np.diff(self.modelLocs[:,1]) >= 0)
 
 
-    def getInterpRegPrfForColRow(self, col: float, row: float) -> InterpRegImage:
+    def getModelPrfForColRow(self, col: float, row: float) -> InterpRegImage:
         col = float(col)
         row = float(row)
 

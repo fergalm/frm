@@ -22,11 +22,11 @@ This isn't very sophisiticated. There is no way to specify which
 roads you want, or exactly where to put the annotations
 """
 
-def plot_interstate(clr='#FEEFC3', edgecolor='#F3C04F', lw=3, annotate=True):
+def plot_interstate(clr='#FEEFC3', edgecolor='#F3C04F', lw=3, annotate=True, zorder=None):
     path = os.path.dirname(__file__)
 
     df = load(os.path.join(path, 'data/MarylandInterstates.kml'))
-    plot_roads(df, clr, edgecolor, lw=lw)
+    plot_roads(df, clr, edgecolor, lw=lw, zorder=zorder)
     if annotate:
         annotate_interstate(path)
               
@@ -54,10 +54,10 @@ def load(fn):
     return df 
 
 
-def plot_roads(df, clr, edgecolor, lw=3):
+def plot_roads(df, clr, edgecolor, lw=3, zorder=None):
     effect = fplots.outline(clr=edgecolor, lw=1.6*lw)
     for g in df.geom:
-        fgplots.plot_shape(g, '-', lw=lw, color=clr, path_effects=effect)
+        fgplots.plot_shape(g, '-', lw=lw, color=clr, path_effects=effect, zorder=zorder)
 
 
 

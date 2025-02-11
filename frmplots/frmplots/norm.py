@@ -55,10 +55,10 @@ class DiscreteNorm(mcolors.BoundaryNorm):
     def __init__(self, ncolors, vmin=None, vmax=None, clip=False):
         mcolors.Normalize.__init__(self, vmin, vmax, clip)
  
-        # self._clip = clip
+        self._clip = clip
         self.ncolors = ncolors
-        # self._vmin = vmin
-        # self._vmax = vmax
+        self._vmin = vmin
+        self._vmax = vmax
         self.bounds = None
 
     @property

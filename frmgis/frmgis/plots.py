@@ -2,6 +2,7 @@ from ipdb import set_trace as idebug
 from pdb import set_trace as debug
 
 import matplotlib.collections as mcollect
+from matplotlib.transforms import Bbox
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatch
 import matplotlib.pyplot as plt
@@ -81,16 +82,23 @@ def chloropleth(polygons, values, **kwargs):
     default_norm = mcolors.BoundaryNorm(np.linspace(vmin, vmax, nstep), cmap.N)
     norm = kwargs.pop('norm', default_norm )
 
+    bbox_list = []
     patch_list = []
     for p,v in zip(polygons, values):
         ap = AnyGeom(p)
         patch = ap.as_patch(facecolor=cmap(norm([v])[0]), **kwargs)
         patch_list.extend(patch)
+        bbox_list.append( patch[0].get_extents() )
+        
     pc = mcollect.PatchCollection(patch_list, match_original=True)
 
     #Plot the patchlist
     ax = plt.gca()
     ax.add_collection(pc)
+
+    #Set axis limits
+    bbox = Bbox.union(bbox_list)
+    plt.plot([bbox.x0, bbox.x1], [bbox.y0, bbox.y1], 'w.', zorder=-100)
 
     #Draw a colorbar
     if wantCbar:
@@ -153,7 +161,7 @@ def plot_shape(shape, *args, **kwargs):
         return plt.plot(shape[:,0], shape[:,1], *args, **kwargs)
 
 
-def plot_shape_collection(geoms, *args, **kwargs):
+def plot_shape_collection(geoms, *ars, **kwargs):
     """Plot multiple shapes
 
     If you only have the one shape to plot, look at `plot_shape()` instead.

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<HTML>
+<head>
+
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.css" />
+<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.js"></script>
+
+<style>
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd {
+  background: #DDDDDD;
+}
+</style>
+
+</head>
+
+<body bgcolor="white">
+<script data-goatcounter="https://fergal.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+<script>
+$(document).ready( function () {
+    $('#myTable').DataTable({
+        paging: false
+    });
+} );
+</script>
+
+<CENTER>
+    <H1>%s</H1>
+    Last updated %s
+</CENTER>
+
+<P></P>
+%s
+
+</body>
+</html>

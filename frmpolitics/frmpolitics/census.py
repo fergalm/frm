@@ -417,22 +417,28 @@ class TigerQuery():
         geometry objects, not WKTs.
         """
         state, county = explode_fips(fips)[:2]
-        assert county is not None
-
         ftype, year, state = self.santize_inputs('tabblock', year, state)
-        return self.query(ftype, year, state, county)
 
+        # import ipdb; ipdb.set_trace()
+        if int(year) < 2020:
+            assert county is not None
+            return self.query(ftype, year, state, county)
+        else:
+            two_digit_year = str(year)[-2:]
+            fn = f"tl_{year}_{state}_tabblock{two_digit_year}.zip"
+            return self.query(ftype, year, state, fn=fn)
+            
 
-    def query(self, ftype, year, state, county=None):
+    def query(self, ftype, year, state, county=None, fn=None):
 
         cache_path = self.get_cache_path(ftype, year, state, county)
         if not os.path.exists(cache_path):
-            self.download(ftype, year, state, county)
+            self.download(ftype, year, state, county, fn)
         df = self.convert_zip_to_wgs84_df(cache_path, year)
         return df
 
-    def download(self, ftype, year, state, county=None):
-        fn = self.get_filename(ftype, year, state, county)
+    def download(self, ftype, year, state, county=None, fn=None):
+        fn = fn or self.get_filename(ftype, year, state, county)
         url = self.make_url(year, ftype, county, fn)
         print(url)
 
@@ -446,23 +452,23 @@ class TigerQuery():
         return cache_file
 
     def make_url(self, year, ftype, county, fn):
-        #idebug()
         if ftype[:2].upper() == 'CD':
             url = os.path.join(self.url,
                             f"TIGER{year}",
                             f"CD",
                             fn)
         elif county is None:
-            url = os.path.join(self.url,
-                            f"TIGER{year}",
-                            f"{ftype.upper()}",
-                            fn)
-        else:
-            url = os.path.join(self.url,
-                            f"TIGER{year}",
-                            f"{ftype.upper()}",
-                            f"{year:04d}",
-                            fn)
+            if int(year) >= 2020:
+                two_digit_year = str(year)[-2:]
+                url = os.path.join(self.url,
+                                f"TIGER{year}",
+                                f"{ftype.upper()}{two_digit_year}" ,
+                                fn)
+            else:
+                url = os.path.join(self.url,
+                                f"TIGER{year}",
+                                f"{ftype.upper()}",
+                                fn)
         return url 
     
 
@@ -470,6 +476,9 @@ class TigerQuery():
 
         fips_alias = self.get_fips_alias_in_shapefile(year)
         df = get_geom.load_geoms_as_df(zip_file, fips_alias)
+
+        if 'GEOID20' in df.columns:
+            df = df.rename({'GEOID20': 'GEOID'}, axis=1)
 
         source = osr.SpatialReference()
         source.ImportFromEPSG(4269)  #NADS83

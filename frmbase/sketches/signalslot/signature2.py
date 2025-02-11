@@ -1,3 +1,5 @@
+from typing import Callable, Tuple, Any
+import inspect
 
 """
 
@@ -34,6 +36,18 @@ def main():
 
     #Prints "running slot1" only
     f2.foo()
+
+
+Tests
+Create and accept
+    nothin g
+    int
+    int str
+    ArbitraryObject
+Reject the wrong kind of slot func
+
+Test class level and object level variables
+
 """
 
 
@@ -58,7 +72,7 @@ class Signature:
 
         size = len(spec.args)
         annotations = spec.annotations
-        f = lambda x: annotations.get(x, typing.Any)
+        f = lambda x: annotations.get(x, Any)
         signature = list(map(f, spec.args))
 
         allow_args = spec.varargs is not None
@@ -66,6 +80,9 @@ class Signature:
         return cls(signature, allow_args, allow_kwargs)
 
     def __eq__(self, other):
+        if not isinstance(other, Signature):
+            return False
+
         if self.allow_kwargs != other.allow_kwargs:
             return False
 
@@ -75,9 +92,9 @@ class Signature:
         if len(self.signature) != len(other.signature):
             return False
 
-        for s, t in zip(signature, template):
+        for s, t in zip(self.signature, other.signature):
             if s != t:
-                print(f"{signature} does not match {template}")
+                print(f"{self} does not match\n{other}")
                 return False
         return True
 
@@ -111,6 +128,14 @@ class Signal:
 
         self.listeners = []
 
+    def __repr__(self):
+        if self.signature is None:
+            sig = "not defined"
+        else:
+            sig = self.signature
+
+        return f"<Signal with signature: {sig}>"
+
     def connect(self, func: Callable):
         """Add a function to listens to this signal.
 
@@ -120,7 +145,7 @@ class Signal:
 
         func_sig = Signature.from_function(func)
 
-        if self.signaure != None:
+        if self.signature != None:
             if func_sig != self.signature:
                 raise ValueError(f"Slot {func} does not match sig {self.signature}")
         self.listeners.append(func)
@@ -140,3 +165,107 @@ class Signal:
             func(*args, **kwargs)
 
 
+
+import pytest
+def test_sig0():
+
+    def foo0():
+        pass
+
+    def foo1(x):
+        pass
+
+    sig = Signal(tuple())
+    sig.connect(foo0)
+    with pytest.raises(ValueError):
+        sig.connect(foo1)
+
+
+def test_sigany():
+
+    def foo0():
+        pass
+
+    def foo1(x):
+        pass
+
+    sig = Signal((Any,))
+    sig.connect(foo1)
+    with pytest.raises(ValueError):
+        sig.connect(foo0)
+
+
+
+
+def test_sigint_str():
+
+    def foo1(x:int):
+        pass
+
+    def foo2(x:str):
+        pass
+
+    sig = Signal((int,))
+    sig.connect(foo1)
+    with pytest.raises(ValueError):
+        sig.connect(foo2)
+
+
+def test_sigarb():
+    class Foo:
+        pass
+
+    def func1(x:Foo):
+        pass
+
+    def func2(x:int):
+        pass
+
+    sig = Signal((Foo,))
+    sig.connect(func1)
+    with pytest.raises(ValueError):
+        sig.connect(func2)
+
+
+def test_class_level():
+
+    class Worker:
+        class_signal = Signal()
+
+        def __init__(self, name):
+            self.name = name
+            self.object_signal = Signal()
+
+        def apply(self):
+            self.class_signal.emit(self.name)
+            self.object_signal.emit(self.name)
+
+    def slot1(caller):
+        print(f"Slot 1 called by {caller}")
+
+    def slot2(caller):
+        print(f"Slot 2 called by {caller}")
+
+    w1 = Worker("W1")
+    w2 = Worker("W2")
+
+    #Connect all workers to slot 1
+    Worker.class_signal.connect(slot1)
+
+    #Connect a single worker to slot 2
+    w1.object_signal.connect(slot2)
+
+    w1.apply()
+    w2.apply()
+
+
+
+#Tests
+#Create and accept
+    #nothin g
+    #int
+    #int str
+    #ArbitraryObject
+#Reject the wrong kind of slot func
+
+#Test class level and object level variables

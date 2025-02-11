@@ -20,8 +20,16 @@
 
 #The default prompt for when you are not in a git repo
 #DEFAULT_PROMPT="Lios $CONDA_PROMPT_MODIFIER \W> "
-DEFAULT_PROMPT="Lios $VIRTUAL_ENV_PROMPT\W> "
 
+if [ "x_" == "x_$VIRTUAL_ENV" ]
+then
+	VENV_DISPLAY=""
+else
+	VENV=`awk -F '/' '{print $NF}' <<< $VIRTUAL_ENV`
+	VENV_DISPLAY="[$VENV]"
+fi
+
+DEFAULT_PROMPT="Lios $VENV_DISPLAY \W> "
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -39,7 +47,7 @@ else
 	#relPath=`sed 's|'$topLevelPath'|.|' <<< $PWD`
 	relPath=`awk -F '/' '{print $NF}' <<< $PWD`
 	#PS1="Lios $CONDA_PROMPT_MODIFIER $VIRTUAL_ENV $currentBranch::$relPath> "
-	PS1="Lios $VIRTUAL_ENV_PROMPT $currentBranch::$relPath> "
+	PS1="Lios $VENV_DISPLAY 🔀$currentBranch::$relPath> "
 fi
 
 export PS1

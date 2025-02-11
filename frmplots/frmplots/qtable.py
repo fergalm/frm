@@ -1,20 +1,26 @@
 from ipdb import set_trace as idebug
 
-import PyQt5.QtWidgets as QtWidget
-import PyQt5.QtCore as QtCore
-import PyQt5.QtGui as QtGui
-import PyQt5.QtWidgets
+try:
+    import PyQt6.QtWidgets as QtWidget
+    import PyQt6.QtCore as QtCore
+    import PyQt6.QtGui as QtGui
+    import PyQt6.QtWidgets
+except ImportError:
+    import PyQt5.QtWidgets as QtWidget
+    import PyQt5.QtCore as QtCore
+    import PyQt5.QtGui as QtGui
+    import PyQt5.QtWidgets
 
 """
 A quick widget that can be called from ipython to display a dataframe
 """
 
-class QTable(PyQt5.QtWidgets.QDialog):
+class QTable(QtWidget.QDialog):
     def __init__(self, df, num=1000, title="Dataframe", parent=None):
         super().__init__(parent)
-        app = PyQt5.QtWidgets.QApplication.instance()
+        app = QtWidget.QApplication.instance()
         if app is None:
-            app = PyQt5.QtWidgets.QApplication([])
+            app = QtWidget.QApplication([])
 
         self.create_layout(df, num, title)
         self.selector = ColumnSelector(self.table)
@@ -71,7 +77,7 @@ class QTable(PyQt5.QtWidgets.QDialog):
             self.table.hideColumn(i)
 
 
-class TableWidget(PyQt5.QtWidgets.QTableWidget):
+class TableWidget(QtWidget.QTableWidget):
     def __init__(self, df, num=1000, parent=None):
         self.df = df[:num]
         self.nrow = len(self.df)
@@ -92,7 +98,7 @@ class TableWidget(PyQt5.QtWidgets.QTableWidget):
     def set_table_elements(self, df):
         self.setHorizontalHeaderLabels(df.columns)
 
-        QItem = PyQt5.QtWidgets.QTableWidgetItem  #Mnumonic
+        QItem = QtWidget.QTableWidgetItem  #Mnumonic
         for i, key in enumerate(df.columns):
             col = df[key]
             for j, elt in enumerate(col):
@@ -105,7 +111,8 @@ class TableWidget(PyQt5.QtWidgets.QTableWidget):
                 except TypeError:
                     item = QItem(str(elt))
                 # Mark item as readonly
-                item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
+                #item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
+                item.setFlags( item.flags()) 
                 self.setItem(j, i, item)
 
         self.resizeColumnsToContents()
@@ -156,14 +163,14 @@ class TableWidget(PyQt5.QtWidgets.QTableWidget):
             self.hideColumn(i)
 
 
-class ColumnSelector(PyQt5.QtWidgets.QDialog):
+class ColumnSelector(QtWidget.QDialog):
     def __init__(self, table, parent=None):
         self.table = table
         df = table.df
-        PyQt5.QtWidgets.QDialog.__init__(self, parent)
+        QtWidget.QDialog.__init__(self, parent)
         self.setMinimumWidth(150)
 
-        layout = PyQt5.QtWidgets.QVBoxLayout(self)
+        layout = QtWidget.QVBoxLayout(self)
         button1 = QtWidget.QPushButton("Select All")
         button1.clicked.connect(self.showAll)
         button2 = QtWidget.QPushButton("Hide All")
@@ -217,7 +224,7 @@ if __name__ == "__main__":
         print("Usage: qtable.py file.csv")
         sys.exit(1)
 
-    app = PyQt5.QtWidgets.QApplication([])
+    app = QtWidget.QApplication([])
     df = pd.read_csv(sys.argv[1])
     print("loading data")
     tab = QTable(df)

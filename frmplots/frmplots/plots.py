@@ -204,9 +204,9 @@ def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
     #Matplotlib expects the data in this odd format. [row, line_elt, xOrY]
     data = np.empty( (len(x), 2, 2) )
     data[:,0,0] = x
-    data[:,0,1] = 0
+    data[:,0,1] = ymin
     data[:,1,0] = x
-    data[:,1,1] = .1 
+    data[:,1,1] = ymax
 
     ax = plt.gca()
     trans = ax.get_xaxis_transform(which='grid')

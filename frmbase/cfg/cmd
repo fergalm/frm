@@ -63,3 +63,6 @@ echo "Recursively grep for word and then do a fuzzy search on results"
 
 title journalctl
 echo "Interrogate logging system"
+
+title 'git reset <file>'
+Un-add a file from git

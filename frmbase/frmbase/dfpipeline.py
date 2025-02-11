@@ -585,7 +585,7 @@ class SetDayNum(AbstractStep):
 class SetTimeZone(AbstractStep):
     """Set the timezone of a columne in a dataframe"""
         
-    def __init__(self, col, tzname:str, origtz:str=None):
+    def __init__(self, col, tzname:str, origtz:str=None, **kwargs):
         """
         Inputs
         -------------
@@ -600,6 +600,7 @@ class SetTimeZone(AbstractStep):
         self.col = col
         self.tzname = tzname
         self.origtz=origtz
+        self.opts = kwargs
 
     def __repr__(self):
         local = ""
@@ -617,7 +618,7 @@ class SetTimeZone(AbstractStep):
 
         #If no timezone information available, define the origin timezone here
         if self.origtz is not None:
-            df[col] = df[col].dt.tz_localize(self.origtz)
+            df[col] = df[col].dt.tz_localize(self.origtz, **self.opts)
 
         try:
             df[col] = df[col].dt.tz_convert(self.tzname)

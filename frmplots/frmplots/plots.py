@@ -895,6 +895,48 @@ def plot_with_discrete_cb(func, *args, **kwargs):
     cb_handle = plt.colorbar(format=tick_format)
     return function_handle, cb_handle
 
+
+def plot_flags(array, xval = None, labels=None, highBit=None):
+    """Plot flags as coloured balls.
+
+    Input:
+    array   (1d array) Array of numbers from, eg, fits['PDCSAPFL']
+    xval    (1d array) array of x values for array. Default is
+            1:len(array)
+    highBit (int) What's the highest bit to plot. Default is to
+            use the highest bit set in array.
+
+    Returns: (void)
+
+    Output: A pretty plot
+    """
+
+    array = array.astype(np.uint32)
+    if highBit is None:
+        highBit = np.uint32(np.floor(np.log2( np.max(array))))
+
+    if xval is None:
+        xval = np.arange(len(array))
+
+
+    ax = plt.gca()
+    for i in range(0, highBit):
+        expn = 2**i
+        val = np.bitwise_and(array, expn) * (i+1) / float(expn)
+#        print expn, np.max(val)
+        idx = np.where(val > 0)[0]  #Where returns a tuple
+        if len(idx) > 0:
+            ax.plot(xval[idx], val[idx], 'o')
+
+    #Adjust the axes
+    #ax.axis([xval[0]-1, xval[-1]+1, 0, highBit])
+
+    #Set labels to supplied strings, if any
+    if labels is not None:
+        ax.set_yticks(range(1,highBit+1))
+        ax.set_yticklabels(labels)
+
+
 from frmbase.plateau import plateau
 def plot_with_gaps(x, y, *args, gap_size=None, func=plt.plot, **kwargs):
     """Plot a timeseries skipping over any gaps.

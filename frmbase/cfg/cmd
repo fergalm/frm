@@ -65,4 +65,7 @@ title journalctl
 echo "Interrogate logging system"
 
 title 'git reset <file>'
-Un-add a file from git
+echo Un-add a file from git
+
+title 'git diff origin/features/<branch> HEAD'
+echo "Diff local branch with remote version (do git pull first)"

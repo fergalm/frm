@@ -40,6 +40,17 @@ def plotImage(img, **kwargs):
     extent
         (4-tuple) Extent of image. See `plt.imshow` for more details
 
+    showValues
+        Format to annotate pixels with their values. e.g "%i" or "%.3f".
+        If unset, do not annotate pixels (the default)
+
+    pmin, pmax
+        Minimum and maximum values of colorbar in terms of percentiles of the entire
+        image. For example, pmin,pmax = 1,99 means that the colourbar will span the 
+        1st to 99th percentile values in the image, and more extreme values are clamped
+        to the exteme colours. Overrides vmin, vmax, if both are present, but is    
+        ignored if a norm is supplied
+
     All other optional arguments passed to `plt.imshow`
 
 
@@ -71,10 +82,23 @@ def plotImage(img, **kwargs):
     showValues = kwargs.pop("showValues", None)
     log = kwargs.pop("log", False)
 
-    vmin = kwargs.pop('vmin', None)
-    vmax = kwargs.pop('vmax', None)
+    vmin = kwargs.pop('vmin', img.min())
+    vmax = kwargs.pop('vmax', img.max())
+    
+    #Pmin/pmax take precedence over vmin/vmax
+    if 'pmin' in kwargs:
+        pmin = kwargs.pop('pmin')
+        assert 0 <= pmin  <= 100
+        vmin = np.percentile(img.flatten(), pmin)
+
+    if 'pmax' in kwargs:
+        pmax = kwargs.pop('pmax')
+        assert 0 <= pmax <= 100
+        vmax = np.percentile(img.flatten(), pmax)
+
     if "norm" not in kwargs:
         kwargs["norm"] = mcolor.Normalize(vmin, vmax)
+    
 
     if log:
         img = img.copy()
@@ -84,21 +108,22 @@ def plotImage(img, **kwargs):
             img += offset
         img = np.log10(img)
 
+    
     axim = plt.imshow(img, **kwargs)
+
     if mask is not None:
         cm = plt.cm.Reds 
         cm.set_under('#00FF0000')
         cm.set_over('#FF0000FF')
         plt.imshow(mask, vmin=0.4, vmax=.6, cmap=cm, origin=kwargs['origin'], extent=kwargs['extent'])
         plt.sci(axim)
-
-
+    
     if showValues is not None:
         showPixelValues(img, kwargs["cmap"], kwargs["norm"], fmt=showValues)
-
+    
     if colorbar:
         plt.colorbar()
-
+    
 
 
 

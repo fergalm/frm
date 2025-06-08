@@ -2,6 +2,7 @@ from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
 from astropy.wcs.wcs import WCS as Wcs
 import numpy as np 
+import frmplots.plots as fplots 
 
 def plotCompassRoseNorthUp(col0, row0, clr='g', length_pix=100, east="left"):
     """Plot a compass rose for the "default" orientation of North up.
@@ -72,22 +73,35 @@ def plotCompassRose(wcs, col0=None, row0=None, clr='g', length_pix=100):
 
 
 def plotArrows(col0, row0, northVec, eastVec, length_pix, clr='g'):
-    props =dict(
+    scale = 1.4
+    aprops =dict(
         edgecolor=clr,
-        arrowstyle= '<-',
+        head_width=4,
+        linewidth=3,
     )
 
+    tprops = dict(
+        va="center",
+        ha="right",
+        color = aprops['edgecolor'],
+        fontsize=18,
+        fontweight='bold',
+        path_effects=fplots.outline('w', lw=3)
+    )
+    
     #Draw North Vector
     dc = float(length_pix*northVec[0])
     dr = float(length_pix*northVec[1])
-    plt.annotate("N", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr, ha='center')
+    plt.arrow(col0, row0, dc, dr, **aprops)
+    plt.text(col0 + scale * dc, row0+ scale * dr, "N", **tprops)
 
     #Draw East Vector
     dc = float(length_pix*eastVec[0])
     dr = float(length_pix*eastVec[1])
-    plt.annotate("E", (col0, row0), (col0+dc, row0+dr), arrowprops=props, color=clr, va='center')
+    plt.arrow(col0, row0, dc, dr, **aprops)
+    plt.text(col0 + scale * dc, row0+ scale * dr, "E ", **tprops)
 
-    patch = plt.Circle((col0, row0), radius = (length_pix/5), fc="None", ec=clr)
+    patch = plt.Circle((col0, row0), radius = (length_pix/5), fc="None", ec=clr, lw=aprops['linewidth'])
     plt.gca().add_patch(patch)
     patch = plt.Circle((col0, row0), radius = (length_pix/20), fc=clr)
     plt.gca().add_patch(patch)
@@ -141,12 +155,18 @@ def getCompassPoints(wcs):
     eastVec
         Same as `northVec`, but for the easterly direction
 
+    Note 
+    ----------
+    The direction of the east vector may be wrong for some images. For 
+    most astro images east is left of North. If the determinant of the 
+    CD matrix is+ve then east is probably the other direction. But 
+    I don't have good data to test with
     """
     try:
         cdMat = getCdFromFitsHdr(wcs)
     except TypeError:
         cdMat = getCdFromWcs(wcs)
-
+                  
     up = np.array([0,1]).reshape(2,1)
     right = np.array([1,0]).reshape(2,1)
 

@@ -338,6 +338,7 @@ def computeErrorEllipse(col: Arr,row: Arr, flag:Arr = None):
     }
     return out
 
+#TODO: Rename compute_angle_deg_noe
 def compute_angle_noe(sma):
     angle_deg = np.degrees(np.arctan2(sma[1], sma[0]))
     return angle_deg

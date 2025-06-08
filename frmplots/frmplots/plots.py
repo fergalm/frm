@@ -935,7 +935,7 @@ def plot_with_gaps(x, y, *args, gap_size=None, func=plt.plot, **kwargs):
         func(x[lwr:upr], y[lwr:upr], *args, **kwargs)
 
 
-def ternary(v1, v2, v3, labels=None, **kwargs):
+def ternary(v1, v2, v3, labels=None, atol=1e-6, **kwargs):
     """Create a ternary plot
 
     https://en.wikipedia.org/wiki/Ternary_plot
@@ -972,7 +972,7 @@ def ternary(v1, v2, v3, labels=None, **kwargs):
 
     for v in [v1, v2, v3]:
         assert 0 <= np.min(v) and  np.max(v) <= 1
-    assert np.allclose(v1 + v2 +v3, 1)
+    assert np.allclose(v1 + v2 +v3, 1, atol=atol)
 
     if labels is None:
         labels = ["Vector 1", "Vector 2", "Vector 3"]

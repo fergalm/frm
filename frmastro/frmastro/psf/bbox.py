@@ -53,7 +53,13 @@ class Bbox:
     def fromImage(cls, img: np.ndarray):
         nr, nc = img.shape 
         return cls(0, 0, nc, nr)
-
+    
+    @classmethod 
+    def fromCentre(cls, col0, row0, halfWidth):
+        c0, c1  = col0 - halfWidth, col0 + halfWidth
+        r0, r1  = row0 - halfWidth, row0 + halfWidth
+        return cls(c0, r0, c1, r1)
+    
     @property
     def shape(self):
         return (self.height, self.width)  #Numpy style

@@ -29,6 +29,7 @@ to the other loaders
 """
 
 import pandas as pd 
+import numpy as np 
 import os 
 
 ROOT_PATH = "/home/fergal/data/elections/MdBoEl"
@@ -106,7 +107,8 @@ def parser2022(df):
     df['TotalVote'] = df.Early + df.Doip + df.Provisional + df.MailIn1 
     if 'MailIn2' in df.columns:
         df['TotalVote'] += df.MailIn2
-
+        
+    df['Precinct'] = df.Precinct.str[1:]
     validate_df_out(df)
     return df
 
@@ -175,6 +177,7 @@ def parse2018(df):
     df = df.rename(mapper, axis=1)
     df['Precinct'] = df.apply(_foo, axis=1)
     df['TotalVote'] = df.DOIP
+    df['Office'] = df.Office.str.rstrip()
     return df
 
 
@@ -205,6 +208,7 @@ def validate_df_out(df):
         msg = f"Expected columns not found: {missing_cols}"
         raise ValueError(msg)
 
+    assert np.all(df.Precinct.str.len() == 6)
 
 def load_schema():
    

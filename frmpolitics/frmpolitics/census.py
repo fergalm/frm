@@ -422,13 +422,16 @@ class TigerQuery():
         # import ipdb; ipdb.set_trace()
         if int(year) < 2020:
             assert county is not None
-            return self.query(ftype, year, state, county)
+            df = self.query(ftype, year, state, county)
         else:
             two_digit_year = str(year)[-2:]
+            # two_digit_year = 10
             fn = f"tl_{year}_{state}_tabblock{two_digit_year}.zip"
-            return self.query(ftype, year, state, fn=fn)
+            df = self.query(ftype, year, state, fn=fn)
+        
+        df = filter_to_fips(df, year, fips)
+        return df
             
-
     def query(self, ftype, year, state, county=None, fn=None):
 
         cache_path = self.get_cache_path(ftype, year, state, county)
@@ -458,7 +461,7 @@ class TigerQuery():
                             f"CD",
                             fn)
         elif county is None:
-            if int(year) >= 2020:
+            if int(year) >= 2020 and False:
                 two_digit_year = str(year)[-2:]
                 url = os.path.join(self.url,
                                 f"TIGER{year}",
@@ -475,10 +478,19 @@ class TigerQuery():
     def convert_zip_to_wgs84_df(self, zip_file, year):
 
         fips_alias = self.get_fips_alias_in_shapefile(year)
-        df = get_geom.load_geoms_as_df(zip_file, fips_alias)
 
-        if 'GEOID20' in df.columns:
-            df = df.rename({'GEOID20': 'GEOID'}, axis=1)
+        try:
+            df = get_geom.load_geoms_as_df(zip_file, "GEOID")
+            key = "GEOID"
+        except KeyError:
+            try:
+                df = get_geom.load_geoms_as_df(zip_file, "GEOID20")
+                key = "GEOID20"
+            except KeyError:
+                df = get_geom.load_geoms_as_df(zip_file, "GEOID10")
+                key = "GEOID10"
+
+        df = df.rename({key: 'GEOID'}, axis=1)
 
         source = osr.SpatialReference()
         source.ImportFromEPSG(4269)  #NADS83
@@ -520,7 +532,8 @@ class TigerQuery():
 
         The decennial census uses a different name for each decade, while
         ACS does not. The ACS class overrides this method"""
-        return "GEOID%s" %(str(year)[-2:])
+        #return "GEOID%s" %(str(year)[-2:])
+        return "GEOID"
 
 
 class TigerQueryAcs(TigerQuery):
@@ -541,6 +554,29 @@ class TigerQueryAcs(TigerQuery):
         return "GEOID"
 
 
+def filter_to_fips(df: pd.DataFrame, year:int, fips:int) -> pd.DataFrame:
+    fips_values = explode_fips(fips)
+    fips_cols = get_tiger_col_name_for_fips(year)
+    
+    idx = np.ones(len(df), dtype=bool)
+    for i in range(len(fips_values)):
+        col = fips_cols[i]
+        idx &=  df[col] == fips_values[i] 
+
+    return df[idx].copy()
+
+
+def get_tiger_col_name_for_fips(year:int):
+    """TODO IF the year is 2021, be smart enough to fall back to 2020"""
+    opts = {
+        2020: 'STATEFP20 COUNTYFP20 TRACTCE20 BLOCKCE20'.split()
+    }
+    
+    year = int(year)
+    return opts[year]
+
+
+
 class TigerQueryDec(TigerQuery):
     def __init__(self, cache_path):
         TigerQuery.__init__(self, cache_path)
@@ -550,9 +586,11 @@ class TigerQueryDec(TigerQuery):
         ftl = ftype.lower()
 
         if county is None:
-            fn = f"tl_{year}_{state}_{ftl}{year2}.zip"
+            # fn = f"tl_{year}_{state}_{ftl}{year2}.zip"
+            fn = f"tl_{year}_{state}_{ftl}.zip"
         else:
-            fn = f"tl_{year}_{state}{county}_{ftl}{year2}.zip"
+            #fn = f"tl_{year}_{state}{county}_{ftl}{year2}.zip"
+            fn = f"tl_{year}_{state}{county}_{ftl}.zip"
         return fn
 
 

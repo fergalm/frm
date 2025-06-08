@@ -52,8 +52,20 @@ echo "Remove a conda envirnoment"
 title conda env export --from-history
 echo "List all explicitly installed packages in env"
 
+title pipdeptree
+echo "List dependency tree for pip packages"
+
+title findimports
+echo "List all packages imported by .py files recursively found in this dir"
+
 title 'rg word | fzf'
 echo "Recursively grep for word and then do a fuzzy search on results"
 
 title journalctl
 echo "Interrogate logging system"
+
+title 'git reset <file>'
+echo Un-add a file from git
+
+title 'git diff origin/features/<branch> HEAD'
+echo "Diff local branch with remote version (do git pull first)"

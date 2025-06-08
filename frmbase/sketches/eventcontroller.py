@@ -1,6 +1,8 @@
 
 """
 Sketch of an algorithm for working in an event driven architecture
+
+signal.py is probably a better approach
 """
 
 

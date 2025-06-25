@@ -921,12 +921,21 @@ def plot_flags(array, xval = None, labels=None, highBit=None):
 
     ax = plt.gca()
     for i in range(0, highBit):
+        clr = f"C{i % 8}"
+
         expn = 2**i
         val = np.bitwise_and(array, expn) * (i+1) / float(expn)
-#        print expn, np.max(val)
-        idx = np.where(val > 0)[0]  #Where returns a tuple
-        if len(idx) > 0:
-            ax.plot(xval[idx], val[idx], 'o')
+
+        wh = np.where(val == 0)[0]  #Where returns a tuple
+        if len(wh) > 0:
+            ax.plot(xval[wh], (i+1)*np.ones_like(wh), 'o', mfc='w', mec='k')
+
+        wh = np.where(val > 0)[0]  #Where returns a tuple
+        if len(wh) > 0:
+            ax.plot(xval[wh], val[wh], 'o', color=clr)
+
+
+        #print( expn, np.max(val), wh)
 
     #Adjust the axes
     #ax.axis([xval[0]-1, xval[-1]+1, 0, highBit])

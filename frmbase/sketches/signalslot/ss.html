@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Fergal Mullally" />
+  <meta name="date" content="2024-10-08" />
+  <title>Signals and Slots (The observer pattern)</title>
+  <style type="text/css">
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="slide titlepage">
+  <h1 class="title">Signals and Slots (The observer pattern)</h1>
+  <p class="author">
+Fergal Mullally
+  </p>
+  <p class="date">2024-10-08</p>
+</div>
+<div id="motivation" class="slide section level2">
+<h1>Motivation</h1>
+<p>Feature Request:</p>
+<blockquote>
+<p>Tara wants to be sent an email whenever the hydro scheduler uses the spillway.</p>
+</blockquote>
+<p>(This is hypothetical)</p>
+</div>
+<div id="the-code" class="slide section level2">
+<h1>The code</h1>
+<p>Currently, our <code>pipeline.py</code> looks something like</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="kw">class</span> Pipeline:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a>    <span class="kw">def</span> do():</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a>        modelList <span class="op">=</span> [SolveNoSpillway(), SolveWithSpillway(), ...]</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a>        <span class="cf">for</span> model <span class="kw">in</span> modelList:</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a>            <span class="cf">try</span>:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a>                model.setup_and_solve()</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a>            <span class="cf">except</span> SolveFailedError:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a>                <span class="cf">continue</span></span></code></pre></div>
+<ul>
+<li><p>We first try to solve with the spillway turned off</p></li>
+<li><p>If that fails, try again with the spillway turned on</p></li>
+</ul>
+</div>
+<div id="first-attempt" class="slide section level2">
+<h1>First Attempt</h1>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="im">from</span> email <span class="im">import</span> send_an_email</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="kw">class</span> Pipeline:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>    <span class="kw">def</span> do():</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>        modelList [SolveNoSpillway(), SolveWithSpillway(), ...]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>        <span class="cf">for</span> model <span class="kw">in</span> modelList:</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>            <span class="cf">try</span>:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>                model.setup_and_solve()</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>            <span class="cf">except</span> SolveFailedError:</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>                <span class="cf">continue</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a>            <span class="co"># This is new</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a>            <span class="cf">if</span> model.spillway <span class="kw">is</span> <span class="va">True</span>:</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a>                send_an_email(...)</span></code></pre></div>
+<p>We don’t like this because for three reasons.</p>
+<ul>
+<li><p><code>pipelines.py</code> now has a new dependency ☹</p></li>
+<li><p><code>do()</code> is doing two things ☹</p>
+<ul>
+<li>Trying different models,</li>
+<li>Sending emails</li>
+</ul></li>
+<li><p>Half our unit tests will spam us all the time ☹</p></li>
+</ul>
+</div>
+<div id="second-attempt" class="slide section level2">
+<h1>Second Attempt</h1>
+<p>(Dependency Inversion)</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="kw">class</span> Pipeline:</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, emailer:AbstractEmailer):</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a>        ...</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>    <span class="kw">def</span> do():</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a>        modelList [SolveNoSpillway(), SolveWithSpillway(), ...]</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>        <span class="cf">for</span> model <span class="kw">in</span> modelList:</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a>            <span class="cf">try</span>:</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a>                model.setup_and_solve()</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a>            <span class="cf">except</span> SolveFailedError:</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true"></a>                <span class="cf">continue</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true"></a>            <span class="cf">if</span> model.spillway <span class="kw">is</span> <span class="va">True</span>:</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true"></a>                <span class="va">self</span>.emailer.send_an_email(...) <span class="co"># This is new</span></span></code></pre></div>
+<ul>
+<li><p>Duck typing</p>
+<ul>
+<li>As long as <code>emailer</code> has a <code>send_an_email</code> method, all will be well.</li>
+</ul></li>
+<li><p>No <strong>explicit</strong> dependency on emailer (i.e no import statement) ✅</p></li>
+<li><p>Easy to substitute in a DummyEmailer for test. ✅</p></li>
+</ul>
+</div>
+<div id="but" class="slide section level2">
+<h1>But…</h1>
+<p>Still doesn’t feel right.</p>
+<ul>
+<li><p>What if we have to do other kinds of reporting in the future. Initialisation in future might require passing in bunches of abstract classes. ☹</p></li>
+<li><p><code>do()</code> still does two things ☹</p></li>
+</ul>
+</div>
+<div id="third-attempt" class="slide section level2">
+<h1>Third Attempt</h1>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">class</span> Pipeline:</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>        <span class="co">#This is new </span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>        <span class="va">self</span>.messenger <span class="op">=</span> Signal()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>    <span class="kw">def</span> do():</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>        modelList [SolveNoSpillway(), SolveWithSpillway(), ...]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>        <span class="cf">for</span> model <span class="kw">in</span> modelList:</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>            <span class="cf">try</span>:</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a>                model.setup_and_solve()</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true"></a>            <span class="cf">except</span> SolveFailedError:</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true"></a>                <span class="cf">continue</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true"></a>                </span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true"></a>            <span class="co"># This is new</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true"></a>            <span class="va">self</span>.messenger.emit(<span class="ss">f&quot;Spillway is </span><span class="sc">{</span>model<span class="sc">.</span>spillway<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+</div>
+<div id="third-attempt-part-2" class="slide section level2">
+<h1>Third Attempt (Part 2)</h1>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="kw">def</span> main()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>    pipeline <span class="op">=</span> Pipeline()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>    pipeline.messenger.<span class="ex">connect</span>(receive)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>    pipeline.do()</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a>    </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="kw">def</span> receive(message):</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a>    <span class="cf">if</span> <span class="st">&quot;True&quot;</span> <span class="kw">in</span> message:</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>        send_an_email()</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>    </span></code></pre></div>
+</div>
+<div id="third-attempt-part-3" class="slide section level2">
+<h1>Third Attempt (Part 3)</h1>
+<ul>
+<li><p>Pipelines has no external dependencies ✅</p></li>
+<li><p>Clean Code: Pipelines.do() only worries about doing one job ✅</p></li>
+<li><p>Future Proof: If the requirements of what we want to do when spillway is used changes, the pipeline code will remain unchanged. ✅</p></li>
+<li><p>Unit testing is easy. Simply leave the signal unconnected so nothing listens to it. ✅</p></li>
+</ul>
+</div>
+<div id="signals" class="slide section level2">
+<h1>Signals</h1>
+<p>Signals are like mini exceptions. They shout a message to the world, then carry on execution. They don’t care if the message is heard, that’s not their concern.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a>is_bad <span class="op">=</span> somefunction()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="cf">if</span> is_bad:</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>    signal.emit()    <span class="co">#Alert and continue </span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a>    <span class="cf">raise</span> <span class="pp">Exception</span>  <span class="co">#Alert and stop work</span></span></code></pre></div>
+</div>
+<div id="signal-internals" class="slide section level2">
+<h1>Signal Internals</h1>
+<p>Signals are really simple objects</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="kw">class</span> Signal:</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a>        <span class="va">self</span>.listeners <span class="op">=</span> []</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a>    <span class="kw">def</span> <span class="ex">connect</span>(<span class="va">self</span>, func):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a>        <span class="va">self</span>.listeners.append(func)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a>    <span class="kw">def</span> emit(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a>        <span class="cf">for</span> func <span class="kw">in</span> <span class="va">self</span>.listeners:</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a>            func(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div>
+<p>.</p>
+<p>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a><span class="kw">class</span> Foo:</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>        <span class="va">self</span>.signal <span class="op">=</span> Signal()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>        </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>foo <span class="op">=</span> Foo()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>foo.signal.<span class="ex">connect</span>(a_function_that_knows_what_to_do)</span></code></pre></div>
+</div>
+<div id="names-and-alias" class="slide section level2">
+<h1>Names and Alias</h1>
+<ul>
+<li>A function/class that shouts into the void is called a <strong>Signal</strong>. A function that is called by a signal is called a <strong>Slot</strong>
+<ul>
+<li>These names mimic those used by Qt software for user interfaces</li>
+</ul></li>
+</ul>
+<p>Many other names exist</p>
+<ul>
+<li>Listeners</li>
+<li>Pub/Sub (Publish/Subscribe architecture)</li>
+<li>Observer Pattern</li>
+</ul>
+</div>
+<div id="design-philosophy" class="slide section level2">
+<h1>Design Philosophy</h1>
+<p>Signals/Slots are a specific example of a broader idea in software design, the onion architecture.</p>
+<ol style="list-style-type: decimal">
+<li><p>Software should be designed like the layers of an onion</p></li>
+<li><p>Internal layers don’t know about external layers</p></li>
+<li><p>External layers know only the interface to next internal layer</p>
+<ol style="list-style-type: decimal">
+<li>The Business Logic should not know anything about platform it runs on</li>
+<li>The code that runs the business logic must know about the logic, but limited exposure to hardware (i.e it knows it runs on a website, but doesn’t know it’s an Azure website</li>
+<li>Outermost layer knows all the details of the hardware, limited information on the business logic.</li>
+</ol></li>
+</ol>
+<p><img src="/home/fergal/all/frm/frmbase/sketches/signalslot/onion.png" /></p>
+</div>
+<div id="questions" class="slide section level2">
+<h1>Questions?</h1>
+</div>
+<div id="bonus-class-and-object-signals" class="slide section level2">
+<h1>Bonus: Class and object signals</h1>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true"></a>   <span class="kw">class</span> Worker:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true"></a>        <span class="co">#Listeners to this signal listen to every object</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true"></a>        class_signal <span class="op">=</span> Signal()</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true"></a>        <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, name):</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true"></a>            <span class="va">self</span>.name <span class="op">=</span> name</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true"></a>            <span class="co">#Listeners to this signal only listen to a single object</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true"></a>            <span class="va">self</span>.object_signal <span class="op">=</span> Signal()</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true"></a>        <span class="kw">def</span> <span class="bu">apply</span>(<span class="va">self</span>):</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true"></a>            <span class="va">self</span>.class_signal.emit(<span class="va">self</span>.name)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true"></a>            <span class="va">self</span>.object_signal.emit(<span class="va">self</span>.name)</span></code></pre></div>
+</div>
+<div id="class-and-object-signals-2" class="slide section level2">
+<h1>Class and object signals (2)</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true"></a><span class="kw">def</span> slot1(caller):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true"></a>        <span class="bu">print</span>(<span class="ss">f&quot;Slot 1 called by </span><span class="sc">{</span>caller<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true"></a><span class="kw">def</span> slot2(caller):</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Slot 2 called by </span><span class="sc">{</span>caller<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true"></a><span class="co">#Connect slot1 to all workers</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true"></a>Worker.class_signal.<span class="ex">connect</span>(slot1)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true"></a>w1, w2 <span class="op">=</span> Worker(<span class="st">&quot;W1&quot;</span>), Worker(<span class="st">&quot;W2&quot;</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true"></a><span class="co">#Connect slot two to a single worker</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true"></a>w1.object_signal.<span class="ex">connect</span>(slot2)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true"></a></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>w1.<span class="bu">apply</span>()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> Slot <span class="dv">1</span> called by W1</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> Slot <span class="dv">2</span> called by W1</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>w2.<span class="bu">apply</span>()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a><span class="op">&gt;&gt;&gt;</span> Slot <span class="dv">1</span> called by W2</span></code></pre></div>
+</div>
+<div id="bonus-type-checking" class="slide section level2">
+<h1>Bonus: Type Checking</h1>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="kw">class</span> Foo</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>        <span class="co">#Specify the argument types of the slots</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>        <span class="va">self</span>.signal <span class="op">=</span> Signal( (<span class="bu">int</span>, <span class="bu">str</span>) )</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true"></a>        </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true"></a><span class="kw">def</span> listener(message:<span class="bu">str</span>):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true"></a>    ... </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true"></a>    </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true"></a><span class="kw">def</span> main():</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true"></a>    f <span class="op">=</span> Foo()</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true"></a>    f.signal.<span class="ex">connect</span>(listener)  <span class="co">#raises an exception</span></span></code></pre></div>
+<ul>
+<li>Runtime type checking in Python is really undercooked</li>
+<li>Type hints must match exactly
+<ul>
+<li><code>list != typing.List</code></li>
+<li><code>List != List[str]</code></li>
+<li><code>int != typing.Any</code></li>
+</ul></li>
+<li><code>emit</code> is still defined as <code>emit(*args, **kwargs)</code>
+<ul>
+<li>Developer must ensure <code>emit</code> is called with the promised args</li>
+<li>But type signature and call to <code>emit</code> are in the same class, so hopefully that’s easier.</li>
+</ul></li>
+</ul>
+</div>
+</body>
+</html>

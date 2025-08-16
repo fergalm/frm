@@ -11,6 +11,8 @@ except ImportError:
     import PyQt5.Qt as Qt
 
 import matplotlib.pyplot as plt
+from pandas._libs.tslibs.parsing import DateParseError
+import pandas as pd
 import numpy as np
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
@@ -18,6 +20,13 @@ from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
+
+"""
+TODO:
+o Screen refrsh should remember zoom level
+o y value button should be toggled on start
+o Cmd line interface
+"""
 
 class QdPlot(QtWidget.QDialog):
     def __init__(self, df):
@@ -28,8 +37,9 @@ class QdPlot(QtWidget.QDialog):
 
         self.df = df
         self.columns = list(df.columns)
-        self.xcol = df.columns[0]
+        self.xcol = self.columns[0]
         self.ycols = np.zeros(len(self.columns))
+        self.ycols[1] = True
 
         self.linestyle = "-"
         self.show_symbols = True
@@ -50,17 +60,6 @@ class QdPlot(QtWidget.QDialog):
         self.control_panel.maximumWidth = 200
 
         self.plot_panel = QtWidget.QVBoxLayout()
-
-        #widget = QtWidget.QWidget()
-        #widget.setLayout(self.control_panel)
-        #scrollArea = QtWidget.QScrollArea()
-        ##policy = QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        #policy = QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOn
-        #scrollArea.setVerticalScrollBarPolicy(policy)
-        #scrollArea.setWidget(widget)
-        #self.layout.addWidget(scrollArea)
-        ##self.layout.addLayout(scrollArea)
-
         self.layout.addLayout(self.control_panel)
         self.setup_control_panel()
 
@@ -134,9 +133,12 @@ class QdPlot(QtWidget.QDialog):
         group_layout = QtWidget.QVBoxLayout()
         group.setLayout(group_layout)
 
-        for col in self.columns:
+        for i, col in enumerate(self.columns):
             button = QtWidget.QPushButton(col)
             button.setCheckable(True)
+
+            if i == 1:
+                button.setChecked(True)
 
             button.clicked.connect(self.newYColToggled)
             group_layout.addWidget(button)
@@ -201,6 +203,29 @@ class QdPlot(QtWidget.QDialog):
             self.hide()
             self.close()
 
+
+def process(df):
+
+    xcol= None
+    for col in df.columns:
+        try:
+            df[col] = pd.to_datetime(df[col], utc=True)
+
+            if xcol is None:
+                xcol = col
+        except DateParseError:
+            pass
+
+        try:
+            #Can we cast as a float?
+            df[col].astype(float)
+
+            if xcol is None:
+                xcol = col
+        except (TypeError, ValueError):
+            pass
+
+    return df, xcol
 
 
 def qdplot(ax, df, xCol, yColBool, ls="-", show_symbols=True, xLog=False, yLog=False):

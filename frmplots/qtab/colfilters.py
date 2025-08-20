@@ -121,7 +121,7 @@ class NumericFilter(AbstractColumnFilter):
 
 
 
-class DatetimeFilter(AbstractColumnFilter):
+class CategoricalFilter(AbstractColumnFilter):
     def __init__(self, col, parent=None):
         AbstractColumnFilter.__init__(self, col, parent)
 
@@ -137,13 +137,8 @@ class DatetimeFilter(AbstractColumnFilter):
         self.show()
 
     def validate(self, df, col):
-        try:
-            pd.to_datetime(df[col])
-            return True 
-        except ValueError:
-            print("Failed to validate as a datetime")
-            return False 
-
+        return len(set(df[col])) <= 6
+    
     def applyFilter(self, df):
         text = self.edit.text()
         

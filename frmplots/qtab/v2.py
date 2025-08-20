@@ -1,11 +1,3 @@
-from ipdb import set_trace as idebug 
-import pandas as pd 
-# from qtable import QTable, ColumnSelector
-# from colfilters import NumericFilter, StringFilter
-from colselect import ColumnSelector
-from filterbank import FilterBank
-from table import TableWidget
-
 try:
     import PyQt6.QtWidgets as QtWidget
     import PyQt6.QtCore as QtCore
@@ -15,12 +7,18 @@ except ImportError:
     import PyQt5.QtCore as QtCore
     import PyQt5.QtGui as QtGui
 
+from ipdb import set_trace as idebug 
+from colselect import ColumnSelector
+from filterbank import FilterBank
+from table import TableWidget
+import pandas as pd 
     
 """
 TODO 
 o Filter text box size should match table column size
 o Reorg into modules
 o Date filter
+o Categorical filter
 """
 
 
@@ -44,17 +42,18 @@ class Model:
         return df.copy()
         
 
-class Controller:
-    def __init__(self, df):
+class QdTable:
+    def __init__(self, df, title=None):
         self.model = Model(df)
         self.colSelect = ColumnSelector(df.columns)
         self.filterBank = FilterBank(df)
-        self.view = View(self.filterBank)
+        self.view = View(self.filterBank, title=title)
 
         self.view.button.clicked.connect(self.colSelect.toggleVisible)
         self.filterBank.changed.connect(self.onChange)
         self.colSelect.changed.connect(self.onChange)
         self.view.display(df)
+
         
     def onChange(self):
         selected = self.colSelect.getSelected()
@@ -70,8 +69,9 @@ class View(QtWidget.QDialog):
         app = QtWidget.QApplication.instance()
         if app is None:
             app = QtWidget.QApplication([])
-        self.create_layout(title, num)
 
+        self.setWindowTitle(title)
+        self.create_layout(title, num)
         self.keyReleaseEvent = self.quit
         self.setFocus(True)
         
@@ -83,7 +83,6 @@ class View(QtWidget.QDialog):
     def display(self, df):
         self.table.display(df)
         self.filterBank.display(df)
-        # print(f"{self.table.width()=}")
         self.setMaximumWidth(self.table.width() + 20)
 
     def create_layout(self, title, num):
@@ -95,8 +94,6 @@ class View(QtWidget.QDialog):
         layout.addLayout(self.filterBank)
         layout.addWidget(self.table)
         self.setLayout(layout)
-
-        self.setWindowTitle(title)
         self.show()
     
 

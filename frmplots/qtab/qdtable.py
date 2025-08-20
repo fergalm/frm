@@ -19,7 +19,31 @@ o Filter text box size should match table column size
 o Reorg into modules
 o Date filter
 o Categorical filter
+o Better string matching
 """
+
+class QdTable:
+    """
+
+    The controller in a model-view-controller pattern
+    """
+    def __init__(self, df, title=None):
+        self.model = Model(df)
+        self.colSelect = ColumnSelector(df.columns)
+        self.filterBank = FilterBank(df)
+        self.view = View(self.filterBank, title=title)
+
+        self.view.button.clicked.connect(self.colSelect.toggleVisible)
+        self.filterBank.changed.connect(self.onChange)
+        self.colSelect.changed.connect(self.onChange)
+        self.view.display(df)
+
+        
+    def onChange(self):
+        selected = self.colSelect.getSelected()
+        df = self.model.get(selected, self.filterBank)
+        self.qdtable.display(df)
+        
 
 
 class Model:
@@ -42,33 +66,15 @@ class Model:
         return df.copy()
         
 
-class QdTable:
-    def __init__(self, df, title=None):
-        self.model = Model(df)
-        self.colSelect = ColumnSelector(df.columns)
-        self.filterBank = FilterBank(df)
-        self.view = View(self.filterBank, title=title)
-
-        self.view.button.clicked.connect(self.colSelect.toggleVisible)
-        self.filterBank.changed.connect(self.onChange)
-        self.colSelect.changed.connect(self.onChange)
-        self.view.display(df)
-
-        
-    def onChange(self):
-        selected = self.colSelect.getSelected()
-        df = self.model.get(selected, self.filterBank)
-        self.qdtable.display(df)
-        
         
 class View(QtWidget.QDialog):
     def __init__(self, filterBank, num=1000, title="Dataframe", parent=None):
         super().__init__(parent)
         self.filterBank = filterBank 
         
-        app = QtWidget.QApplication.instance()
-        if app is None:
-            app = QtWidget.QApplication([])
+        # app = QtWidget.QApplication.instance()
+        # if app is None:
+        #     app = QtWidget.QApplication([])
 
         self.setWindowTitle(title)
         self.create_layout(title, num)

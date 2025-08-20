@@ -1,19 +1,25 @@
+try:
+    import PyQt6.QtWidgets as QtWidget
+    import PyQt6.QtCore as QtCore
+    import PyQt6.QtGui as QtGui
+    import PyQt6.QtWidgets
+except ImportError:
+    import PyQt5.QtWidgets as QtWidget
+    import PyQt5.QtCore as QtCore
+    import PyQt5.QtGui as QtGui
+    import PyQt5.QtWidgets
 
 
-from ipdb import set_trace as idebug
-
-import PyQt5.QtWidgets as QtWidget
-import PyQt5.QtWidgets
-
-
-class ColumnSelector(PyQt5.QtWidgets.QDialog):
-    def __init__(self, table, parent=None):
-        self.table = table
-        df = table.df
-        PyQt5.QtWidgets.QDialog.__init__(self, parent)
+class ColumnSelector(QtWidget.QDialog):
+    changed = QtCore.Signal()
+    
+    def __init__(self, columns, parent=None):
+        # self.table = table
+        # df = table.df
+        QtWidget.QDialog.__init__(self, parent)
         self.setMinimumWidth(150)
 
-        layout = PyQt5.QtWidgets.QVBoxLayout(self)
+        layout = QtWidget.QVBoxLayout(self)
         button1 = QtWidget.QPushButton("Select All")
         button1.clicked.connect(self.showAll)
         button2 = QtWidget.QPushButton("Hide All")
@@ -23,7 +29,7 @@ class ColumnSelector(PyQt5.QtWidgets.QDialog):
         self.setWindowTitle("Select Columns")
 
         self.boxes = []
-        for i, col in enumerate(df.columns):
+        for i, col in enumerate(columns):
             print(i, col)
             checkbox = QtWidget.QCheckBox(col)
             checkbox.setChecked(True)
@@ -31,7 +37,7 @@ class ColumnSelector(PyQt5.QtWidgets.QDialog):
             layout.addWidget(checkbox)
             self.boxes.append(checkbox)
         self.layout = layout
-        self.show()
+        self.hide()
 
         self.keyReleaseEvent = self.quit
 
@@ -40,20 +46,30 @@ class ColumnSelector(PyQt5.QtWidgets.QDialog):
         if key == 81:  #The letter [q]
             self.hide()
 
+    def toggleVisible(self):
+        if self.isVisible():
+            self.hide()
+        else:
+            self.show()
+            
     def showAll(self):
-        self.table.showAll()  # Maybe unecessary?
-
         # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(True)
-
-    def hideAll(self):
-        self.table.hideAll()  # Maybe unecessary?
-
+        self.changed.emit()
+         
+    def hideAll(self): 
         # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(False)
-
+        self.changed.emit()
+    
     def onToggle(self, state):
-        sender = self.sender()
-        self.table.toggleColumn(sender.text(), state > 0)
+        self.changed.emit()
+
+    def getSelected(self):
+        out = []
+        for box in self.boxes:
+            if box.isChecked():
+                out.append(box.text())
+        return out 

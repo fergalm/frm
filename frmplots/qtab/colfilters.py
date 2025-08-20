@@ -1,40 +1,48 @@
+try:
+    import PyQt6.QtWidgets as QtWidget
+    import PyQt6.QtCore as QtCore
+    import PyQt6.QtGui as QtGui
+except ImportError:
+    import PyQt5.QtWidgets as QtWidget
+    import PyQt5.QtCore as QtCore
+    import PyQt5.QtGui as QtGui
+
+
 from ipdb import set_trace as idebug
-import matplotlib.pyplot as plt
-from pprint import pprint
-import pandas as pd
 import numpy as np
-import re
 
 
-import PyQt5.QtWidgets as QtWidget
-import PyQt5.QtCore as QtCore
 
-from checkablecombo import CheckableComboBox
+# from checkablecombo import CheckableComboBox
 
 
 """
-Abstract and concreate column filter classes. 
+Abstract and concrete column filter classes. 
 
 These are QWidget objects that also encode the logic of which rows should be filtered in and out 
 """
 
-
+    
 class AbstractColumnFilter(QtWidget.QWidget):
     changed = QtCore.Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, col, parent=None):
         QtWidget.QWidget.__init__(self, parent)
-
-    def getFilteredIn(self):
-        pass
-
-    def reset(self):
-        pass
-
-    def onChange(self):
-        print(f"Change detected in {self.col}: {self}")
+        self.keyReleaseEvent = self.onChange
+        self.col = col 
+    
+    def __repr__(self):
+        return f"<{type(self)} on column {self.col}>"
+    
+    def onChange(self, keyPress):
         self.changed.emit()
-
+    
+    def validate(self, df, col):
+        pass 
+    
+    def applyFilter(self, df, col):
+        pass 
+    
     def show(self):
         self.setVisible(True)
 
@@ -42,65 +50,43 @@ class AbstractColumnFilter(QtWidget.QWidget):
         self.setVisible(False)
 
 
-class CategoricalFilter(AbstractColumnFilter):
+class StringFilter(AbstractColumnFilter):
     def __init__(self, col, parent=None):
-        AbstractColumnFilter.__init__(self, parent)
+        AbstractColumnFilter.__init__(self, col, parent)
 
-        self.label = QtWidget.QLabel(col.name)
+        self.label = QtWidget.QLabel(col)
 
-        self.col = col
-        self.idx = np.ones(len(col), dtype=bool)
-        self.items = set(col)
-        self.combo = CheckableComboBox()
-        self.combo.addItems(self.items)
-        self.combo.model().dataChanged.connect(self.onChange)
+        self.edit = QtWidget.QLineEdit()
+        self.edit.textChanged.connect(self.onChange)
 
         layout = QtWidget.QVBoxLayout()
         layout.addWidget(self.label)
-        layout.addWidget(self.combo)
+        layout.addWidget(self.edit)
         self.setLayout(layout)
+        self.show()
 
+    def validate(self, df, col):
+        #Any column can always be treated as text 
+        return True 
+    
+    def applyFilter(self, df):
+        text = self.edit.text()
+        num_char = len(text)
 
-    def getFilteredIn(self) -> np.ndarray:
-        print('Debug GFI', self.col.name, np.sum(self.idx))
-        return self.idx.copy()
-
-    def onChange(self):
-        print("Getting selection for CatFilter for ", self.col.name)
-        selected = self.combo.getSelectedItems()
-        print(selected)
-        print(self.col.astype(str).values[:10])
-        print(self.col.astype(str).values[-10:])
-        idx = self.col.astype(str).isin(selected)
-
-        print( np.all(self.col.astype(str) == '0'))
-        print(np.sum(self.col.astype(str) == '0'))
-        print(np.sum(self.col.astype(str) == '1'))
-        print(np.where(idx == False))
-        print(idx)
-
-        #import pdb; pdb.set_trace()
-        # print(idx[:10])
-        try:
-            self.idx = idx.values
-        except AttributeError:
-            self.idx = idx
-        print('Debug', self.col.name, np.sum(idx))
-        self.changed.emit()
-
-    def setWidth(self, width):
-        self.combo.setMaximumWidth(width)
-
-
+        if num_char == 0:
+            return df 
+        
+        idx = text == df[self.col].astype(str).str[:num_char]
+        if np.any(idx):
+            return df[idx].copy()
+        return  df[idx]
 
 class NumericFilter(AbstractColumnFilter):
     def __init__(self, col, parent=None):
-        AbstractColumnFilter.__init__(self, parent)
+        AbstractColumnFilter.__init__(self, col, parent)
 
-        self.label = QtWidget.QLabel(col.name)
+        self.label = QtWidget.QLabel(col)
 
-        self.col = col
-        self.idx = np.ones(len(self.col), dtype=bool)
         self.edit = QtWidget.QLineEdit()
         self.edit.textChanged.connect(self.onChange)
 
@@ -110,69 +96,37 @@ class NumericFilter(AbstractColumnFilter):
         self.setLayout(layout)
         self.show()
 
-    def onChange(self):
-        print(f"Change detected in {self.col}: {self}")
+    def validate(self, df, col):
+        try:
+            df[col].astype(float)
+            return True 
+        except ValueError:
+            return False 
+
+    def applyFilter(self, df):
         text = self.edit.text()
-        cmd = self.parseText(text)
-
-        if cmd == "":
-            self.idx = np.ones(len(self.col), dtype=bool)   # No filter
-            self.changed.emit()
-            return
-
+        
+        if text == "":
+            return df 
+        
+        cmd = f"df[self.col] {text}"
+        
         try:
             # This, of course, hideously insecure
             idx = eval(cmd)
-            print("command was parsed")
         except SyntaxError:
-            print("Command failed to parse")
-            return
-
-        try:
-            idx = idx.values
-        except AttributeError:
-            pass
-
-        print(idx)
-        if not isinstance(idx, np.ndarray):
-            return
-        print("idx is numpy array")
-
-        if len(idx) != len(self.col):
-            return
-        print("idx is correct length")
-        self.idx = idx
-        print("Emiting")
-        self.changed.emit()
+            print(f"Command failed to parse: {cmd}")
+            return df
+        return df[idx].copy()
 
 
-    def parseText(self, text):
-        if text == "":
-            return text
 
-        operators = "<= >= == != < >".split()
-        for op in operators:
-            text = re.subn(op, f"self.col {op}", text)[0]
-            print( text)
-        return text
-
-    def getFilteredIn(self):
-        try:
-            return self.idx.values.copy()
-        except AttributeError:
-            return self.idx.copy()
-
-    def setWidth(self, width):
-        self.edit.setMaximumWidth(width)
-
-
-class StringFilter(AbstractColumnFilter):
+class DatetimeFilter(AbstractColumnFilter):
     def __init__(self, col, parent=None):
-        AbstractColumnFilter.__init__(self, parent)
-        self.label = QtWidget.QLabel(col.name)
+        AbstractColumnFilter.__init__(self, col, parent)
 
-        self.col = col
-        self.idx = np.ones(len(self.col), dtype=bool)
+        self.label = QtWidget.QLabel(col)
+
         self.edit = QtWidget.QLineEdit()
         self.edit.textChanged.connect(self.onChange)
 
@@ -182,67 +136,27 @@ class StringFilter(AbstractColumnFilter):
         self.setLayout(layout)
         self.show()
 
-    def onChange(self):
-        print(f"Change detected in {self.col}: {self}")
-
-        text = self.edit.text()
-        num_char = len(text)
-        self.idx = text == self.col[:num_char]
-        print(f"{np.sum(self.idx)} of {len(self.idx)} are true")
-        self.changed.emit()
-
-    def getFilteredIn(self):
+    def validate(self, df, col):
         try:
-            return self.idx.values.copy()
-        except AttributeError:
-            return self.idx.copy()
+            pd.to_datetime(df[col])
+            return True 
+        except ValueError:
+            print("Failed to validate as a datetime")
+            return False 
 
-    def setWidth(self, width):
-        self.edit.setMaximumWidth(width)
+    def applyFilter(self, df):
+        text = self.edit.text()
+        
+        if text == "":
+            return df 
+        
+        cmd = f"df[self.col] {text}"
+        
+        try:
+            # This, of course, hideously insecure
+            idx = eval(cmd)
+        except SyntaxError:
+            print(f"Command failed to parse: {cmd}")
+            return df
+        return df[idx].copy()
 
-
-class FilterCollection(QtWidget.QWidget):
-    changed = QtCore.Signal()
-
-    def __init__(self, filter_list, parent=None):
-        QtWidget.QWidget.__init__(self, parent)
-        self.filter_list = filter_list
-
-        self.layout = QtWidget.QHBoxLayout()
-        for f in filter_list:
-            self.layout.addWidget(f)
-            #Whenever a filter is changed, the collection issues an "I have changed" signal
-            f.changed.connect(self.onChange)
-        self.setLayout(self.layout)
-        self.show()
-
-    def addFilter(self, col_filter):
-        self.layout.addWidget(col_filter)
-
-    def onChange(self):
-        print("Filter collection is emiting a signal")
-        self.changed.emit()
-
-    def getFilteredIn(self) -> np.ndarray:
-
-        f0 = self.layout.itemAt(0).widget()
-        idx = f0.getFilteredIn()  #Get length of index array
-        idx |= True
-
-        print("   ---    ")
-        # print(f0.col.name,  np.sum(idx), " of ", len(f0.col))
-        for i in range(0, self.layout.count()):
-            f = self.layout.itemAt(i).widget()
-            idx2 = f.getFilteredIn()
-            # print(f"anding with {idx2}, {type(idx2)}")
-            print(f.col.name, np.sum(idx2), " of ", len(idx2))
-            print("Idx is now:", np.sum(idx))
-
-            idx &= idx2
-        return idx
-
-    def showColumn(self, i):
-        self.filter_list[i].show()
-
-    def hideColumn(self, i):
-        self.filter_list[i].hide()

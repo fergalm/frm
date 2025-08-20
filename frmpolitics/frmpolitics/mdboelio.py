@@ -154,7 +154,7 @@ def parse2018(df):
         'County Name': 'County', 
         'Election District': 'District',
         'Election Precinct': 'Precinct',# 'Congressional',
-        # 'Legislative',
+        'Legs': 'Legislative',
         'Office Name': 'Office',
         # 'Office District',
         'Candidate Name': 'Candidate',

@@ -13,6 +13,11 @@ except ImportError:
 
 """
 A quick widget that can be called from ipython to display a dataframe
+
+o Put a filter box over every column.
+o Implement a text filter 
+o Implement logic to decide if we need a text/number filter
+o Bonus, a categorical filter and a datafilter 
 """
 
 class QTable(QtWidget.QDialog):
@@ -23,8 +28,8 @@ class QTable(QtWidget.QDialog):
             app = QtWidget.QApplication([])
 
         self.create_layout(df, num, title)
-        self.selector = ColumnSelector(self.table)
-        self.selector.hide()
+        # self.selector = ColumnSelector(self.table)
+        # self.selector.hide()
 
         #I think I have to subclass QTableWidget and override keyReleaseEvent
         self.keyReleaseEvent = self.process_key_press
@@ -49,15 +54,15 @@ class QTable(QtWidget.QDialog):
     def process_key_press(self, eventQKeyEvent):
         key = eventQKeyEvent.key()
         if key == 81:  #The letter [q]
-            self.selector.hide()
+            # self.selector.hide()
             self.hide()
             self.close()
 
-    def toggle_button(self):
-        if self.selector.isVisible():
-            self.selector.hide()
-        else:
-            self.selector.show()
+    # def toggle_button(self):
+    #     if self.selector.isVisible():
+    #         self.selector.hide()
+    #     else:
+    #         self.selector.show()
 
     def toggleColumn(self, sender_label, state):
         cols = self.table.df.columns
@@ -164,9 +169,11 @@ class TableWidget(QtWidget.QTableWidget):
 
 
 class ColumnSelector(QtWidget.QDialog):
-    def __init__(self, table, parent=None):
-        self.table = table
-        df = table.df
+    changed = QtCore.Signal()
+    
+    def __init__(self, columns, parent=None):
+        # self.table = table
+        # df = table.df
         QtWidget.QDialog.__init__(self, parent)
         self.setMinimumWidth(150)
 
@@ -180,7 +187,7 @@ class ColumnSelector(QtWidget.QDialog):
         self.setWindowTitle("Select Columns")
 
         self.boxes = []
-        for i, col in enumerate(df.columns):
+        for i, col in enumerate(columns):
             print(i, col)
             checkbox = QtWidget.QCheckBox(col)
             checkbox.setChecked(True)
@@ -203,19 +210,29 @@ class ColumnSelector(QtWidget.QDialog):
         # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(True)
-
+        self.changed.emit()
+        
     def hideAll(self):
         self.table.hideAll()  # Maybe unecessary?
 
         # Update all the checkboxes
         for box in self.boxes:
             box.setChecked(False)
-
+        self.changed.emit()
+    
     def onToggle(self, state):
         sender = self.sender()
-        self.table.toggleColumn(sender.text(), state > 0)
+        # self.table.toggleColumn(sender.text(), state > 0)
+        self.changed.emit()
 
-
+    def getSelected(self):
+        out = []
+        for box in self.boxes:
+            if box.isChecked():
+                out.append(box.label)
+        return out 
+    
+    
 if __name__ == "__main__":
     import pandas as pd
     import sys

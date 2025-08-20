@@ -76,7 +76,8 @@ def plotArrows(col0, row0, northVec, eastVec, length_pix, clr='g'):
     scale = 1.4
     aprops =dict(
         edgecolor=clr,
-        head_width=4,
+        head_width=3,
+        head_length=3,
         linewidth=3,
     )
 
@@ -93,7 +94,7 @@ def plotArrows(col0, row0, northVec, eastVec, length_pix, clr='g'):
     dc = float(length_pix*northVec[0])
     dr = float(length_pix*northVec[1])
     plt.arrow(col0, row0, dc, dr, **aprops)
-    plt.text(col0 + scale * dc, row0+ scale * dr, "N", **tprops)
+    plt.text(col0 + scale * dc, row0+ scale * dr, "N ", **tprops)
 
     #Draw East Vector
     dc = float(length_pix*eastVec[0])

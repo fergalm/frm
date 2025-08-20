@@ -89,12 +89,12 @@ def plotImage(img, **kwargs):
     if 'pmin' in kwargs:
         pmin = kwargs.pop('pmin')
         assert 0 <= pmin  <= 100
-        vmin = np.percentile(img.flatten(), pmin)
+        vmin = computeModifiedPercentile(img, pmin)
 
     if 'pmax' in kwargs:
         pmax = kwargs.pop('pmax')
         assert 0 <= pmax <= 100
-        vmax = np.percentile(img.flatten(), pmax)
+        vmax = computeModifiedPercentile(img, pmax)
 
     if "norm" not in kwargs:
         kwargs["norm"] = mcolor.Normalize(vmin, vmax)
@@ -124,6 +124,21 @@ def plotImage(img, **kwargs):
     if colorbar:
         plt.colorbar()
     
+def computeModifiedPercentile(img, pval):
+    vals = img.flatten()
+
+    #Compute mode 
+    vals,counts = np.unique(vals, return_counts=True)
+    index = np.argmax(counts)
+    mode = vals[index]
+
+    #Compute percentile of values not including the mode.
+    #This prevents filler values affecting the result
+    vals = vals[vals != mode]
+    result = np.percentile(vals, pval)
+    return result 
+    
+
 
 
 

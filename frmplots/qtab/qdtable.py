@@ -42,7 +42,7 @@ class QdTable:
     def onChange(self):
         selected = self.colSelect.getSelected()
         df = self.model.get(selected, self.filterBank)
-        self.qdtable.display(df)
+        self.view.display(df)
         
 
 

@@ -119,39 +119,3 @@ class NumericFilter(AbstractColumnFilter):
             return df
         return df[idx].copy()
 
-
-
-class CategoricalFilter(AbstractColumnFilter):
-    def __init__(self, col, parent=None):
-        AbstractColumnFilter.__init__(self, col, parent)
-
-        self.label = QtWidget.QLabel(col)
-
-        self.edit = QtWidget.QLineEdit()
-        self.edit.textChanged.connect(self.onChange)
-
-        layout = QtWidget.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.edit)
-        self.setLayout(layout)
-        self.show()
-
-    def validate(self, df, col):
-        return len(set(df[col])) <= 6
-    
-    def applyFilter(self, df):
-        text = self.edit.text()
-        
-        if text == "":
-            return df 
-        
-        cmd = f"df[self.col] {text}"
-        
-        try:
-            # This, of course, hideously insecure
-            idx = eval(cmd)
-        except SyntaxError:
-            print(f"Command failed to parse: {cmd}")
-            return df
-        return df[idx].copy()
-

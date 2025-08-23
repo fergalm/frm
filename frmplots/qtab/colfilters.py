@@ -9,6 +9,7 @@ except ImportError:
 
 
 from ipdb import set_trace as idebug
+import pandas as pd 
 import numpy as np
 
 
@@ -110,6 +111,50 @@ class NumericFilter(AbstractColumnFilter):
             return df 
         
         cmd = f"df[self.col] {text}"
+        
+        try:
+            # This, of course, hideously insecure
+            idx = eval(cmd)
+        except SyntaxError:
+            print(f"Command failed to parse: {cmd}")
+            return df
+        return df[idx].copy()
+
+
+from pandas._libs.tslibs.parsing import DateParseError
+
+class DatetimeFilter(AbstractColumnFilter):
+    def __init__(self, col, parent=None):
+        AbstractColumnFilter.__init__(self, col, parent)
+
+        self.label = QtWidget.QLabel(col)
+
+        self.edit = QtWidget.QLineEdit()
+        self.edit.textChanged.connect(self.onChange)
+
+        layout = QtWidget.QVBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.edit)
+        self.setLayout(layout)
+        self.show()
+
+    def validate(self, df, col):
+        try:
+            pd.to_datetime(df[col])
+            return True 
+        except (ValueError, TypeError, DateParseError):
+            return False 
+
+    def applyFilter(self, df):
+        text = self.edit.text()
+        
+        if text == "":
+            return df 
+        
+        if text[0] in "< > = !".split():
+            cmd = f"df[self.col] {text}"
+        else:
+            cmd = f"pd.to_datetime(df[self.col]).dt.{text}"
         
         try:
             # This, of course, hideously insecure

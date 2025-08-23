@@ -7,7 +7,7 @@ except ImportError:
     import PyQt5.QtCore as QtCore
     import PyQt5.QtGui as QtGui
 
-from colfilters import NumericFilter, StringFilter
+from colfilters import NumericFilter, StringFilter, DatetimeFilter
 
 
 class FilterBank(QtWidget.QHBoxLayout):
@@ -40,7 +40,7 @@ class FilterBank(QtWidget.QHBoxLayout):
         self.bank[col].hide()
         
     def createFilterBank(self, df):
-        filters = [NumericFilter, StringFilter]
+        filters = [DatetimeFilter, NumericFilter, StringFilter]
         out = {}
         
         for c in df.columns:

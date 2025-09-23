@@ -946,6 +946,79 @@ def plot_flags(array, xval = None, labels=None, highBit=None):
         ax.set_yticklabels(labels)
 
 
+def plot_resid(x, y, *args, **kwargs):
+    """Plot y against x, and (y-x) against x in a separate panel
+
+    Useful for comparing forecasts to actual data
+
+    Inputs
+    ----------
+    x, y
+        Sequences to plot against each other
+
+    Optional Inputs
+    ------------------
+    All *args are passed to plt.plot
+
+    xlabel, ylabel
+        (str) labels for axes
+    clr
+        (str) Color of the one-to-one line
+    grid
+        (dict) A Subplot grid. This is useful if you want to
+        overplot two forecasts on top of each other
+
+    Returns
+    ------------
+    A subplot mosaic grid dictionary
+
+
+    Example
+    ------------
+    ```
+        grid = residual_plot(x, y1, 'ko')
+        residual_plot(x, y2, 'rs', grid=grid
+    ```
+    """
+
+    if len(args) == 0:
+        args = ('ko',)
+
+    xlabel = kwargs.pop('xlabel', "")
+    ylabel = kwargs.pop('ylabel', "")
+    one_to_one_line_clr = kwargs.pop('clr', 'g')
+    
+    if 'grid' in kwargs:
+        grid = kwargs.pop('grid')
+    else:
+        grid = plt.gcf().subplot_mosaic('a\na\na\nb')
+    
+    #grid = kwargs.pop('grid', plt.gcf().subplot_mosaic('a\na\na\nb'))
+    assert {'a', 'b'} <= set(grid.keys()), "Expected keys (a, b), not found in keyword arg 'grid'"
+
+    plt.sca(grid['a'])
+    plt.subplots_adjust(hspace=0)
+    plt.plot(x, y, *args, **kwargs)
+
+    mn = min(plt.axis())
+    mx = max(plt.axis())
+    plt.plot([mn, mx], [mn, mx], '-', color=one_to_one_line_clr)
+    plt.ylabel(ylabel)
+
+    plt.sca(grid['b'])
+    resid = y - x
+    plt.plot(x, resid, *args, **kwargs)
+    
+    #Set symmetric y-axis for residuals
+    mx = max( -resid.min(), resid.max())
+    plt.ylim(-1.05*mx, 1.05*mx)
+    
+    plt.axhline(0, color=one_to_one_line_clr)
+    plt.xlabel(xlabel)
+
+    return grid
+
+
 from frmbase.plateau import plateau
 def plot_with_gaps(x, y, *args, gap_size=None, func=plt.plot, **kwargs):
     """Plot a timeseries skipping over any gaps.

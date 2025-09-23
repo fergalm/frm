@@ -1,3 +1,4 @@
+
 try:
     import PyQt6.QtWidgets as QtWidget
     import PyQt6.QtCore as QtCore
@@ -10,9 +11,7 @@ except ImportError:
     import PyQt5.QtWidgets
     import PyQt5.Qt as Qt
 
-import matplotlib.pyplot as plt
-from pandas._libs.tslibs.parsing import DateParseError
-import pandas as pd
+
 import numpy as np
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
@@ -45,7 +44,7 @@ class PlotState:
 
 
 
-class QdPlot(QtWidget.QMainWindow):
+class QdPlot(QtWidget.QDialog):
     def __init__(self, df, state=None):
         super().__init__(None)
         app = QtWidget.QApplication.instance()
@@ -60,7 +59,7 @@ class QdPlot(QtWidget.QMainWindow):
 
         self.build()
         self.keyReleaseEvent = self.process_key_press
-
+        #
         self.show()
         self.update()
 
@@ -80,32 +79,16 @@ class QdPlot(QtWidget.QMainWindow):
 
     def build(self):
 
-
         self.control_panel = QtWidget.QVBoxLayout()
-        extraWidget = QtWidget.QWidget()
-        extraWidget.setLayout(self.control_panel)
-
-        #
-        # # self.control_panel.setSizeConstraint(QtWidget.QLayout.SetMinAndMaxSize)
-        # self.control_panel.maximumWidth = 200
-        # # self.control_panel.minimumWidth = 150
         self.setup_control_panel()
-        #
-        # # self.scroll.setWidgetResizable(True)
-        # # self.control_panel.addWidget(self.scroll)
-        #
-        # # inner = QtWidget.QFrame(self.scroll)
-        # # inner.setLayout(self.control_panel)
-        #
+
         self.plot_panel = QtWidget.QVBoxLayout()
         self.setup_plot_panel()
-        #
-        self.layout = QtWidget.QHBoxLayout()
-        # # self.layout.addLayout(self.control_panel)
-        self.layout.addWidget(extraWidget)
-        self.layout.addLayout(self.plot_panel)
-        self.setLayout(self.layout)
 
+        layout = QtWidget.QHBoxLayout()
+        layout.addLayout(self.control_panel)
+        layout.addLayout(self.plot_panel)
+        self.setLayout(layout)
         self.setWindowTitle("QdPlot")
 
 
@@ -134,7 +117,7 @@ class QdPlot(QtWidget.QMainWindow):
         panel.addWidget(QtWidget.QLabel("X Column"))
         panel.addWidget(combo)
         combo.currentIndexChanged.connect(self.newXColSelected)
-        combo.show()
+        # combo.show()
 
         panel.addWidget(QtWidget.QLabel("Line Style"))
         linestyle = QtWidget.QComboBox()
@@ -159,7 +142,6 @@ class QdPlot(QtWidget.QMainWindow):
         button.setCheckable(True)
         button.setChecked(self.state.zoomLock)
         panel.addWidget(button)
-
 
         xbutt = QtWidget.QPushButton("&X Log")
         xbutt.setCheckable(True)
@@ -210,12 +192,6 @@ class QdPlot(QtWidget.QMainWindow):
             button.clicked.connect(self.newYColToggled)
             group_layout.addWidget(button)
 
-        ##Press one of the buttons
-        #child = group_layout.findChild(
-            #QtWidget.QPushButton,
-            #self.df.columns[1]
-        #)
-        #child.setChecked(True)
 
 
     #TODO rename xColSelectSlot
@@ -268,6 +244,8 @@ class QdPlot(QtWidget.QMainWindow):
         axl = None
         if self.state.zoomLock:
             axl = self.state.axl
+            print(f"Zoom lock is on. {axl=}")
+
 
         self.state.axl = qdplot(self.ax, self.df, st.xCol, st.yCols, ls=st.lineStyle, show_symbols=st.showSymbols, xLog=st.xLog, yLog=st.yLog, axl=axl)
         self.canvas.draw_idle()

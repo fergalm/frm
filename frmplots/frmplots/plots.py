@@ -20,9 +20,9 @@ How to have dates on the colour bar axis
     date_num = list(map(date2num, dates))
     plt.scatter(x, y, c=date_num)
     plt.colorbar(format=DateFormatter("%Y-%m-%d"))
-    
-    
-    
+
+
+
 How to change the date format in the toolbar of an interactive plot. UPDATE: This is now implemented
 in `fix_date_labels()` below
 
@@ -36,7 +36,7 @@ in `fix_date_labels()` below
         ...
         ax = plt.gca()
         ax.fmt_xdata = foo
-        
+
 There is another function pointer called fmt_ydata for the y data format
 An exercise is to figure out is
 how to check if the x axis is plotting dates or not
@@ -81,7 +81,7 @@ def add_figure_labels(xlabel, ylabel, **kwargs):
         (str) Label for x axis
     ylabel
         (str) Label for y axis
-    
+
     All other options are passed to plt.xlabel and plt.ylabel.
     Use plt.suptitle to put a title over the subplots
     """
@@ -91,7 +91,7 @@ def add_figure_labels(xlabel, ylabel, **kwargs):
     fig.add_subplot(111, frameon=False)
     plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False, which='both')
     plt.xlabel(xlabel, **kwargs)
-    plt.ylabel(ylabel, **kwargs)  
+    plt.ylabel(ylabel, **kwargs)
     plt.sca(ax)
 
 
@@ -99,7 +99,7 @@ def annotate_histogram(vals, bins, **kwargs):
     """Prints the number of elements in a histogram on top of each bar.
 
     Slightly experimental. Only works for vertical histograms. Behaviour
-    for multiple bars of the same height not well tested. 
+    for multiple bars of the same height not well tested.
 
     Example
     ------------
@@ -113,7 +113,7 @@ def annotate_histogram(vals, bins, **kwargs):
     vals, bins
         The two arrays returned by `np.histogram`, or the first two values
         returned by matplotlib's `hist` command
-    
+
     Optional Arguments
     ---------------------
     fmt
@@ -121,10 +121,10 @@ def annotate_histogram(vals, bins, **kwargs):
     ha
         (string) Horizontal alignment of text. Defaults to center.
     above=True
-        (bool) Whether annotations should be above or below the point 
+        (bool) Whether annotations should be above or below the point
     offset
         (float) How far above (or below) top of line to place the label.
-        A value of 0 means no offsetting. A value of 1 offsets by the 
+        A value of 0 means no offsetting. A value of 1 offsets by the
         difference between the heights of the max and in bars.
     jitter
         (float) How much to offset adjacent labels in the y direction.
@@ -160,14 +160,14 @@ def annotate_histogram(vals, bins, **kwargs):
     # old = 0
     # for xpos, val in zip(locs, vals):
     #     if val <= 0:
-    #         continue 
-    # 
+    #         continue
+    #
     #     ypos = val + offset
     #     if np.fabs(ypos - old) < offset:
-    #         ypos += sign * offset 
+    #         ypos += sign * offset
     #         sign *= -1
-        
-    # old = ypos 
+
+    # old = ypos
     # plt.text(xpos, ypos + offset, fmt%(val), ha=ha, va=va, **kwargs)
 
     import matplotlib.transforms as mtransforms
@@ -192,7 +192,7 @@ def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
 
     See also plt.eventplot()
 
-    This is useful if your points are clustered together too closely to be seen, but for 
+    This is useful if your points are clustered together too closely to be seen, but for
     some reason the densityPlot() isn't suitable for your plot.
 
     This implementation uses a LineCollection class to speed rendering.
@@ -200,17 +200,17 @@ def barcode(x, clr='C0', lw=.5, alpha=.4, ymin=0, ymax=.1):
     ---------
     x
         (1d np array) List of x values to plot
-    
+
     Optional Inputs
     -------------------
     clr
-        (str) Colour of lines, in a format matplotlib expects 
+        (str) Colour of lines, in a format matplotlib expects
     lw
         (float) Width of lines
     alpha
         (float) transparency
     ymin
-        (float) Bottom of whisker in axis units 
+        (float) Bottom of whisker in axis units
     ymax
         (float) Top of whisker in axis units.
 
@@ -409,7 +409,7 @@ def fix_date_labels():
 
     Also fixes the box at top right of the interactive
     window that reports the cursor location
-    
+
     Note
     ----------
     To get minor ticks once per day add the following code
@@ -428,8 +428,14 @@ def fix_date_labels():
     #to be once weekly
     locator = mdates.AutoDateLocator(minticks=2, maxticks=7, interval_multiples=False)
     locator.intervald['DAILY'] = 7
+
+    formats = ['%Y (%Z)', '%b (%Z)', '%d (%Z)', '%H:%M (%Z)', '%H:%M (%Z)', '%S.%f']
     ax = plt.gca()
     ax.xaxis.set_major_locator(locator)
+
+    #This coerces times to UTC
+    # formatter = mdates.ConciseDateFormatter(locator, formats=formats)
+    # ax.xaxis.set_major_formatter(formatter)
 
     #Fix the text box at top right of plot to show
     #dates correctly. Note, for images, use plt.gca().format_coord
@@ -543,7 +549,7 @@ def mark_indices(x_data, y_axis, *args, **kwargs):
     """
     if not hasattr(y_axis, 'len'):
         y_axis = y_axis + np.zeros_like(x_data, dtype=float)
-        
+
     ax = plt.gca()
     trans = mtrans.blended_transform_factory(ax.transData, ax.transAxes)
     return ax.plot(x_data, y_axis, *args, transform=trans, **kwargs)
@@ -633,7 +639,7 @@ def mark_nights(timestamps, tz='UTC'):
 
 def outline(clr='k', lw=1):
     """Add an outline to text or a line.
-    
+
     See also shadow()
     Usage:
     ----------
@@ -652,25 +658,25 @@ def plotMeshGrid(df, axis1, axis2, xCol, yCol, show1=True, show2=True, annotate=
     """Draw a mesh grid between a set of connected points
 
     Given a set of points in an x-y plane that represent computed
-    values for some underlying grid of objects, draw contours 
+    values for some underlying grid of objects, draw contours
     of constant values that connect the points.
 
     The classic example is a grid of atmosphere models for a range
-    of temperature and log(g), and you want to draw lines in 
+    of temperature and log(g), and you want to draw lines in
     colour-colour space between lines of constant temperature,
     and other lines between models of constant log(g)
 
     Inputs
     ---------
     df
-        Input dataframe 
+        Input dataframe
     axis1
         (str) The column in `df` of the first axis in model space (e.g temperature)
     axis2
         (str) The column in `df` of the second axis in model space (e.g logg)
     xCol
         (str) The column in `df` with the x-values of the plotted points
-    yCol 
+    yCol
         (str) The column in `df` with the y-values of the plotted points
 
     show1
@@ -687,7 +693,7 @@ def plotMeshGrid(df, axis1, axis2, xCol, yCol, show1=True, show2=True, annotate=
         print(gr.groups.keys())
         gr.apply(lambda x: plt.plot(x[xCol], x[yCol], *args, **kwargs))
 
-    if show2:    
+    if show2:
         gr = df.sort_values('axis1').groupby('axis2')
         print(gr.groups.keys())
         gr.apply(lambda x: plt.plot(x[xCol], x[yCol], *args, **kwargs))
@@ -698,13 +704,13 @@ def plotMeshGrid(df, axis1, axis2, xCol, yCol, show1=True, show2=True, annotate=
 
 def plot_model_hist(model, bins, n_elt, *args, **kwargs):
     """Plot a stats model scaled so model.cdf(np.inf) == n_elt
-    
+
     The scipy.stats module contains a number of common statistical functions
     (like normal, gumbel, laplacian, etc.) with a consistent interface. I often
     have the problem that I fit one of these models to some data in a maximum
     likelihood sense, then want to plot the model of a historgram of the data.
     The problem is that the model returns normalised values, i.e model.cdf(np.inf) = 1
-    regardless of how many data points were including in the fit. 
+    regardless of how many data points were including in the fit.
 
     I could normalise the histogram of my data points, but that hides useful information.
     Instead, this function scales the values returned by model so they match the histogram.
@@ -713,7 +719,7 @@ def plot_model_hist(model, bins, n_elt, *args, **kwargs):
     ---------
     ```
     import scipy.stats as spstats
-    
+
     x = np.rand.randn(1000)
     pars = spstats.norm.fit(x)
     obj = spstats.norm(*pars)
@@ -724,7 +730,7 @@ def plot_model_hist(model, bins, n_elt, *args, **kwargs):
     Inputs
     -----------
     model
-        (scipy.stats.rvs_continuous object) A frozen stats model (i.e one where the loc and 
+        (scipy.stats.rvs_continuous object) A frozen stats model (i.e one where the loc and
         scale params have been set)
     bins
         (1d np array) location of bin edges of histogram
@@ -815,17 +821,17 @@ def _plot_single_month(df, plotter, datecol,  *args, **kwargs):
 
 def default_monthly_plotter(df, datecol, *args, **kwargs):
     """Example plotter for `monthly_plot()`
-    
+
     Is passed a dataframe where every data point shares the same year and month.
     Any return value is ignored.
-    
+
     Inputs
     -------
     df
         (DataFrame)
     datecol
-        (str) Name of column to plot on the xaxis 
-    
+        (str) Name of column to plot on the xaxis
+
     All other arguments are passed to the `plt.plot` function
     """
     def plot(df, datecol, *args, **kwargs):
@@ -987,12 +993,12 @@ def plot_resid(x, y, *args, **kwargs):
     xlabel = kwargs.pop('xlabel', "")
     ylabel = kwargs.pop('ylabel', "")
     one_to_one_line_clr = kwargs.pop('clr', 'g')
-    
+
     if 'grid' in kwargs:
         grid = kwargs.pop('grid')
     else:
         grid = plt.gcf().subplot_mosaic('a\na\na\nb')
-    
+
     #grid = kwargs.pop('grid', plt.gcf().subplot_mosaic('a\na\na\nb'))
     assert {'a', 'b'} <= set(grid.keys()), "Expected keys (a, b), not found in keyword arg 'grid'"
 
@@ -1008,11 +1014,11 @@ def plot_resid(x, y, *args, **kwargs):
     plt.sca(grid['b'])
     resid = y - x
     plt.plot(x, resid, *args, **kwargs)
-    
+
     #Set symmetric y-axis for residuals
     mx = max( -resid.min(), resid.max())
     plt.ylim(-1.05*mx, 1.05*mx)
-    
+
     plt.axhline(0, color=one_to_one_line_clr)
     plt.xlabel(xlabel)
 
@@ -1035,7 +1041,7 @@ def plot_with_gaps(x, y, *args, gap_size=None, func=plt.plot, **kwargs):
     func
         Default is plt.plot. Any function with the signature func(x, y, *args, **kwargs)
         can be specified here
-        
+
     Note
     ------
     If the x value is in datetime format, gap_size should be be pd.to_timedelta()
@@ -1187,10 +1193,10 @@ def save_figfile(filename):
 
 
 def shadow(**kwargs):
-    """Add a drop-shadow to a line or some text 
+    """Add a drop-shadow to a line or some text
 
     See also outline()
-    
+
     Usage:
     ----------
     `plt.plot(x, y, ... path_effects=fplots.shadow() )`
@@ -1217,3 +1223,37 @@ def text_at_figure_coords(x, y, text, *args, **kwargs):
 
 
 
+
+# def foo(x, scale=1):
+#     """An attempt to show a 1d scatter plot
+#
+#     It's a new style of plot I see a lot.
+#     You're trying to show the density distribution
+#     in one day by plotting individual points. Where
+#     the points start to cluster together too tightly
+#     you scatter the points in the y direction a little
+#     so they don't overlap.
+#
+#     I don't quite have it right yet, I don't think
+#     """
+#     x.copy().sort()
+#     n = len(x)
+#     count = np.histogram(x, bins=n)[0]
+#     # print(count)
+#
+#     width = int((np.max(x) - np.min(x))/scale)
+#     print(width)
+#     sys = np.ones(width) / width
+#     # print(sys)
+#     std = np.convolve(count, sys, mode='same')
+#     # print(std)
+#     y = 1 - 2*np.random.rand(n)
+#     # y = np.sign(y) * y**.5
+#     y *= np.sqrt(std)
+#     # y *= .1
+#
+#     srt = np.argsort(x)
+#
+#     # plt.plot(x[srt], std[srt], 'C0-')
+#     # plt.plot(x[srt], -std[srt], 'C0-')
+#     plt.plot(x, y, 'ko', ms=12, mec='r')

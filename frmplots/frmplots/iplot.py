@@ -1,4 +1,4 @@
-from  ipdb import set_trace as idebug 
+from  ipdb import set_trace as idebug
 from matplotlib.widgets import Cursor
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ class AbstractInteractivePlot():
         #Set input arguments as class variables.
 
         self.fig1 = plt.gcf()
-        self.fig2 = plt.figure()
+        # self.fig2 = plt.figure()
 
         self.updateEvent = 'key_press_event'
         self.fig1.canvas.mpl_disconnect(self.updateEvent)
@@ -38,7 +38,7 @@ class AbstractInteractivePlot():
         print(x, y, key)
 
         if key == 'q':
-            return 
+            return
 
         plt.figure(self.fig2.number)
         plt.cla()
@@ -58,11 +58,11 @@ class AbstractInteractivePlot():
 
 class AbstractDataframeInteractivePlot(AbstractInteractivePlot):
     def __init__(self, df, xCol, yCol):
-        self.df = df 
-        self.xCol = xCol 
-        self.yCol = yCol 
+        self.df = df
+        self.xCol = xCol
+        self.yCol = yCol
 
-        AbstractInteractivePlot.__init__(self) 
+        AbstractInteractivePlot.__init__(self)
 
     def xyToRow(self, x, y):
         """Utility function to convert x,y to a row in a dataframe"""
@@ -80,7 +80,7 @@ class AbstractDataframeInteractivePlot(AbstractInteractivePlot):
         #this behaves better when the x and y axes cover dramatically different ranges
         x1, x2, y1, y2 = plt.axis()
         frac_x = dx / (x2 - x1)
-        frac_y = dy / (y2 - y1) 
+        frac_y = dy / (y2 - y1)
 
         dist = np.hypot(frac_x, frac_y)
         dist[ ~np.isfinite(dist) ] = 2 * np.max(dist)
@@ -89,7 +89,7 @@ class AbstractDataframeInteractivePlot(AbstractInteractivePlot):
 
 class InteractivePlot(AbstractDataframeInteractivePlot):
     """
-    
+
     This is an example implementation
 
     Clicking in the plot activates the callback function which
@@ -156,7 +156,7 @@ class Crosshairs:
         self.vertical_line = ax.axvline(color='k', lw=0.8, ls='--')
         # text location in axes coordinates
         self.text = ax.text(0.72, 0.9, '', transform=ax.transAxes)
-    
+
         plt.gcf().canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
 
     def set_cross_hair_visible(self, visible):

@@ -92,9 +92,13 @@ class PlotWheel(object):
 
 class GroupPlotWheel(PlotWheel):
     """Base class for plotting the results of a groupby"""
-    def __init__(self, df, col, i0=0):
+    def __init__(self, df, col, i0=0, plotFunc=None):
         self.gr = df.groupby(col)
         self.keys = list(self.gr.groups.keys())
+        
+        #Monkey Patch the plot function
+        if plotFunc is not None:
+            self.plot = plotFunc
 
         PlotWheel.__init__(self, len(self.keys), i0=i0)
 

@@ -24,6 +24,7 @@ Timer()
 """
 
 from ipdb import set_trace as idebug
+from typing import Any
 from glob import glob
 import pandas as pd
 import numpy as np
@@ -262,6 +263,40 @@ def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, *
     # f = lambda x: loader(x, **kwargs)
     dflist = list(map(f, flist))
     return pd.concat(dflist)
+
+
+class MonkeyPatch:
+    """Temporarily replace attribute `name` in `obj` with `patch`
+    
+    Helpful when doing unit tests when there is a hardcoded
+    dependency on something you don't want to test.
+    
+    You generally shouldn't write code that needs to be 
+    monkeypatched before testing, but sometimes it's 
+    necessary.
+    
+    With great power comes great responsibility, etc.
+    
+    Example
+    ---------
+    ```python
+    with MonkeyPatch('poke.clients.database', 'query', dummy_query):
+        test_a_function_that_calls_the_database
+    ```
+    """
+    
+    def __init__(self, obj:Any, name:str, patch: Callable):
+        self.object = obj
+        self.name = name
+        self.patch = patch
+        self.pre_patch_value = getattr(obj, name)
+
+    def __enter__(self):
+        setattr(self.object, self.name, self.patch)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        setattr(self.object, self.name, self.pre_patch_value)
+
 
 
 def npregex(pattern, array):

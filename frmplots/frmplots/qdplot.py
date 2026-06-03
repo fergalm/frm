@@ -163,20 +163,20 @@ class QdPlot(QtWidget.QDialog):
 
         #Create buttons for each column
         group = QtWidget.QGroupBox("Select Columns")
-        # group.setMinimumSize(150, 800)
-        # group.setMinimumSize(200, 1200)
 
         if True:
             panel.addWidget(group)
         else:
-            pass
+            group.setMinimumSize(150, 800)
+            group.setMinimumSize(200, 1600)
+
             #Something like this will get scrollbars working
-            # scroll = QtWidget.QScrollArea(self)
-            # scroll.setWidget(group)
-            # scroll.setWidgetResizable(True)
-            # scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff )
-            # scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded )
-            # panel.addWidget(scroll)
+            scroll = QtWidget.QScrollArea(self)
+            scroll.setWidget(group)
+            scroll.setWidgetResizable(True)
+            scroll.setHorizontalScrollBarPolicy( QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff )
+            scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded )
+            panel.addWidget(scroll)
 
 
         group_layout = QtWidget.QVBoxLayout()

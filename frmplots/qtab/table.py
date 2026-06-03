@@ -1,11 +1,11 @@
-try:
-    import PyQt6.QtWidgets as QtWidget
-    import PyQt6.QtCore as QtCore
-    import PyQt6.QtGui as QtGui
-except ImportError:
-    import PyQt5.QtWidgets as QtWidget
-    import PyQt5.QtCore as QtCore
-    import PyQt5.QtGui as QtGui
+# try:
+import PyQt6.QtWidgets as QtWidget
+import PyQt6.QtCore as QtCore
+import PyQt6.QtGui as QtGui
+# except ImportError:
+# import PyQt5.QtWidgets as QtWidget
+# import PyQt5.QtCore as QtCore
+# import PyQt5.QtGui as QtGui
 
     
 class SortableTableItemWidget(QtWidget.QTableWidgetItem):
@@ -52,7 +52,7 @@ class TableWidget(QtWidget.QTableWidget):
                     item = QItem(" ")
                     continue
                 item = QItem(str(elt))
-                item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
+                item.setFlags( item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                 self.setItem(j, i, item)
     
         self.setHorizontalHeaderLabels(df.columns)

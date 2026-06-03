@@ -7,7 +7,7 @@ except ImportError:
     import PyQt5.QtCore as QtCore
     import PyQt5.QtGui as QtGui
 
-from colfilters import NumericFilter, StringFilter, DatetimeFilter
+from .colfilters import NumericFilter, StringFilter, DatetimeFilter
 
 
 class FilterBank(QtWidget.QHBoxLayout):

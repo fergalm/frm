@@ -307,7 +307,9 @@ def get_git_info(filename) -> dict:
     branch = repo.active_branch
     commit = branch.commit
 
-    params['__git_remote_url__'] = repo.remote().url
+    url = repo.remote().url
+    url = str(bytes(url, 'utf-8'))  #Work around windows weirdness
+    params['__git_remote_url__'] = url
     params['__git_branch__'] = branch.name
     date = pd.to_datetime(commit.authored_date, unit='s')
     params['__git_branch_commit_date__'] = str(date)

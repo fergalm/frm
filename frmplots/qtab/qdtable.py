@@ -1,16 +1,20 @@
-try:
-    import PyQt6.QtWidgets as QtWidget
-    import PyQt6.QtCore as QtCore
-    import PyQt6.QtGui as QtGui
-except ImportError:
-    import PyQt5.QtWidgets as QtWidget
-    import PyQt5.QtCore as QtCore
-    import PyQt5.QtGui as QtGui
+# try:
+#     import PyQt6.QtWidgets as QtWidget
+#     import PyQt6.QtCore as QtCore
+#     import PyQt6.QtGui as QtGui
+# except ImportError:
+#     import PyQt5.QtWidgets as QtWidget
+#     import PyQt5.QtCore as QtCore
+#     import PyQt5.QtGui as QtGui
+import PyQt6.QtWidgets as QtWidget
+import PyQt6.QtCore as QtCore
+import PyQt6.QtGui as QtGui
+
 
 from ipdb import set_trace as idebug 
-from colselect import ColumnSelector
-from filterbank import FilterBank
-from table import TableWidget
+from .colselect import ColumnSelector
+from .filterbank import FilterBank
+from .table import TableWidget
 import pandas as pd 
     
 """
@@ -79,7 +83,7 @@ class View(QtWidget.QDialog):
         self.setWindowTitle(title)
         self.create_layout(title, num)
         self.keyReleaseEvent = self.quit
-        self.setFocus(True)
+        # self.setFocus(True)
         
     def quit(self, eventQKeyEvent):
         key = eventQKeyEvent.key()

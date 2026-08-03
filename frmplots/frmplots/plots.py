@@ -514,9 +514,16 @@ def label_grid_square(col: float, row:float, val:float, fmt:str, clr, **kwargs):
     **None**
     """
     textcolor='w'
-    if np.prod(clr) > .1:
+
+    # Taken from
+    # https://en.wikipedia.org/wiki/HSL_and_HSV
+    luma = np.array([.2126, .7152, .0722, 0]) @ clr
+    if luma > .5:
         textcolor='k'
 
+
+    if luma > 1:
+        import ipdb; ipdb.set_trace()
     text = fmt %(val)
     plt.text(col, row, text, \
         va="center",
@@ -1191,6 +1198,31 @@ def save_figfile(filename):
     with open(filename, 'wb') as fp:
         fp.write( gzip.compress(pickle.dumps(fig)) )
 
+
+def set_tz_for_axis(tz:str, **kwargs):
+    """Force the x-axis ticks to use a definite timezone
+
+    Use only if you are plotting dates on the x-axis of your plot
+    Inputs
+    -----------
+    tz
+        Timezone string to use, eg UTC or "US/Eastern"
+
+    All other arguments are passed to `matplotlib.dates.AutoDateFormatter`
+
+    Returns
+    ----------
+    **None**
+    """
+    ax = plt.gca()
+    locator = ax.xaxis.get_major_locator()
+    formatter = mdates.AutoDateFormatter(locator, tz=tz, **kwargs)
+
+    for key in formatter.scaled:
+        val = formatter.scaled[key]
+        formatter.scaled[key] = val + " %Z"
+
+    ax.xaxis.set_major_formatter(formatter)
 
 def shadow(**kwargs):
     """Add a drop-shadow to a line or some text

@@ -15,9 +15,9 @@ except ImportError:
 A quick widget that can be called from ipython to display a dataframe
 
 o Put a filter box over every column.
-o Implement a text filter 
+o Implement a text filter
 o Implement logic to decide if we need a text/number filter
-o Bonus, a categorical filter and a datafilter 
+o Bonus, a categorical filter and a datafilter
 """
 
 class QTable(QtWidget.QDialog):
@@ -28,8 +28,8 @@ class QTable(QtWidget.QDialog):
             app = QtWidget.QApplication([])
 
         self.create_layout(df, num, title)
-        # self.selector = ColumnSelector(self.table)
-        # self.selector.hide()
+        self.selector = ColumnSelector(df.columns)
+        self.selector.hide()
 
         #I think I have to subclass QTableWidget and override keyReleaseEvent
         self.keyReleaseEvent = self.process_key_press
@@ -58,11 +58,11 @@ class QTable(QtWidget.QDialog):
             self.hide()
             self.close()
 
-    # def toggle_button(self):
-    #     if self.selector.isVisible():
-    #         self.selector.hide()
-    #     else:
-    #         self.selector.show()
+    def toggle_button(self):
+        if self.selector.isVisible():
+            self.selector.hide()
+        else:
+            self.selector.show()
 
     def toggleColumn(self, sender_label, state):
         cols = self.table.df.columns
@@ -117,7 +117,7 @@ class TableWidget(QtWidget.QTableWidget):
                     item = QItem(str(elt))
                 # Mark item as readonly
                 #item.setFlags( item.flags() & ~QtCore.Qt.EditRole)
-                item.setFlags( item.flags()) 
+                item.setFlags( item.flags())
                 self.setItem(j, i, item)
 
         self.resizeColumnsToContents()
@@ -170,7 +170,7 @@ class TableWidget(QtWidget.QTableWidget):
 
 class ColumnSelector(QtWidget.QDialog):
     changed = QtCore.Signal()
-    
+
     def __init__(self, columns, parent=None):
         # self.table = table
         # df = table.df
@@ -211,7 +211,7 @@ class ColumnSelector(QtWidget.QDialog):
         for box in self.boxes:
             box.setChecked(True)
         self.changed.emit()
-        
+
     def hideAll(self):
         self.table.hideAll()  # Maybe unecessary?
 
@@ -219,7 +219,7 @@ class ColumnSelector(QtWidget.QDialog):
         for box in self.boxes:
             box.setChecked(False)
         self.changed.emit()
-    
+
     def onToggle(self, state):
         sender = self.sender()
         # self.table.toggleColumn(sender.text(), state > 0)
@@ -230,9 +230,9 @@ class ColumnSelector(QtWidget.QDialog):
         for box in self.boxes:
             if box.isChecked():
                 out.append(box.label)
-        return out 
-    
-    
+        return out
+
+
 if __name__ == "__main__":
     import pandas as pd
     import sys

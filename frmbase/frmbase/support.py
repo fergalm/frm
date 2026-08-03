@@ -40,7 +40,7 @@ if 'HOME' not in os.environ:
     try:
         os.environ['HOME'] = os.environ['USERPROFILE']
     except KeyError:
-        pass 
+        pass
 
 def create_chunks(array, chunksize):
     """Split an array into smaller chunks.
@@ -64,11 +64,11 @@ def create_chunks(array, chunksize):
 
 
 
-def check_cols_in_df(df: pd.DataFrame, cols: list) -> bool:
+def check_cols_in_df(df: pd.DataFrame, cols: list, verbose=False) -> bool:
     """Because I always get this wrong"""
-    return check_columns_in_df(df, cols)
+    return check_columns_in_df(df, cols, verbose)
 
-def check_columns_in_df(df: pd.DataFrame, cols: list) -> bool:
+def check_columns_in_df(df: pd.DataFrame, cols: list, verbose=False) -> bool:
     """Check that every element of cols in a column in the dataframe
 
     Inputs
@@ -83,7 +83,12 @@ def check_columns_in_df(df: pd.DataFrame, cols: list) -> bool:
     -------
     **True** if all `cols` are columns in dataframes
     """
-    return len(set(cols) - set(df.columns)) <= 0
+
+    diff = set(cols) - set(df.columns)
+    if len(diff) > 0 and verbose:
+        print(f"Columns {diff} not found in input dataframe")
+
+    return len(diff) == 0
 
 
 
@@ -196,12 +201,12 @@ def is_evenly_spaced(y):
     diff = np.diff(y)
     return np.all(diff == diff[0])
 
-    
+
 from typing import Union, Optional, Callable
 def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, **kwargs) -> pd.DataFrame:
     """Load a set of files whose paths match pattern
 
-    This only works for local files. Results are 
+    This only works for local files. Results are
     stored in a dataframe
 
     Inputs
@@ -212,7 +217,7 @@ def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, *
         Function that loads individual files. Must return a dataframe.
         Eg pd.read_csv, pd.read_parquet, etc
         If this is a string (eg csv), or None, function will try to guess the
-        correction loading function. 
+        correction loading function.
 
     All optional inputs are passed to `loader`
 
@@ -267,16 +272,16 @@ def load_df_from_pattern(pattern, loader: Optional[Union[str, Callable]]=None, *
 
 class MonkeyPatch:
     """Temporarily replace attribute `name` in `obj` with `patch`
-    
+
     Helpful when doing unit tests when there is a hardcoded
     dependency on something you don't want to test.
-    
-    You generally shouldn't write code that needs to be 
-    monkeypatched before testing, but sometimes it's 
+
+    You generally shouldn't write code that needs to be
+    monkeypatched before testing, but sometimes it's
     necessary.
-    
+
     With great power comes great responsibility, etc.
-    
+
     Example
     ---------
     ```python
@@ -284,7 +289,7 @@ class MonkeyPatch:
         test_a_function_that_calls_the_database
     ```
     """
-    
+
     def __init__(self, obj:Any, name:str, patch: Callable):
         self.object = obj
         self.name = name
@@ -296,6 +301,35 @@ class MonkeyPatch:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         setattr(self.object, self.name, self.pre_patch_value)
+
+
+def multi_merge(*args, on):
+    """Merge mutilple dataframe on a common key
+
+    Inputs
+    -----------
+    *args
+        Two or more dataframes
+    key
+        Common key
+
+    Returns
+    ---------
+    A single dataframe
+
+    Notes
+    ---------
+    * Can get upset if there columns with similare names in multiple
+    dataframes. This is fixible if I care to take the time.
+    """
+
+    dflist = args
+    mg = dflist[0]
+    for i, df in enumerate(dflist[1:]):
+        left = f"_{i}"
+        right = f"_{i+1}"
+        mg = pd.merge(mg, df, on=on, suffixes=(left,right))
+    return mg
 
 
 
@@ -324,7 +358,7 @@ def npmap(function, *array):
 
 def lmap(function, *array):
     """Perform a map, and package the result into a list, like what map did in Py2.7"""
-    return list(map(function, *array))    
+    return list(map(function, *array))
 
 def orderOfMag(val):
     """Return the order of magnitude of value

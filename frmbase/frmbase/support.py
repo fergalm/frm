@@ -35,6 +35,7 @@ import os
 import re
 
 
+
 #Work around for windows
 if 'HOME' not in os.environ:
     try:
@@ -502,6 +503,41 @@ def printh(num:float, unit:str = None) -> str:
     val = num * 10**(-order)
     text = "%.3f %s%s" %(val, modifier, unit)
     return text
+
+
+def set_datetime_cols(df: pd.Dataframe, **kwargs) -> pd.DataFrame:
+    """Set all date-like string columns in a dataframe to DateTime types
+
+    When reading in a dataframe from a csv file, dates are read in as strings
+    and not automatically converted back to datetime objects.
+
+    This function tries to guess which columns are datetime strings
+    and convert them to date time types
+
+    Inputs
+    -----------
+    df
+        The dataframe to be converted
+
+    All other arguments are passed to `pd.to_datetime`
+
+    Returns
+    ----------
+    The input dataframe is returned, with the data type of relevant
+    columns updated
+    """
+
+    df = df.copy()
+    cols = df.columns
+    for c in cols:
+        try:
+            pattern = r"\d{4}-\d{2}-\d{2}"
+            if np.all(df[c].str[:10].str.match(pattern)):
+                df[c] = pd.to_datetime(df[c], **kwargs)
+        except AttributeError:
+            pass
+    return df
+
 
 
 

@@ -45,7 +45,7 @@ import os
 mapStyles ={
              'osm': "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png" ,
              'wikipedia': "https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png" ,
-             'light': "http://light_all.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" ,
+             'light': "http://light_all.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png&key=cb1_26az_1_1d86722055ca723ce0eda60a",
              'stamen': "http://a.tile.stamen.com/toner/{z}/{x}/{y}.png",
              'transparent': "http://a.tile.stamen.com/toner/{z}/{x}/{y}.png",
              'planet': "https://tiles.planet.com/basemaps/v1/planet-tiles/global_monthly_2018_05_mosaic/gmap/{z}/{x}/{y}.png?api_key=68d6a04361934ed98effdd27d78df506",
@@ -57,6 +57,7 @@ mapStyles ={
 #mapbox://styles/mullally/cjivusojc12312rpmvpgty841
 mapCopyright={
             'osm': u"Map © OpenStreetMap",
+            'light': u"Map © OpenStreetMap © Carto",
             'transparent': u"Map Design © Stamen by CC-BY. Data © OpenStreetMap",
             'planet': u"Source planet.com",
             'satlab': u"Image from mapbox.com",

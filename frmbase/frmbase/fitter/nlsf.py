@@ -84,6 +84,27 @@ def nlSine(x, order, param, **kwargs):
         return -A*np.cos(w*x-phi)
 
 
+def nlLineAndSine(x, order ,param, **kwargs):
+    if len(param) != 5:
+        raise ValueError("Require 5 and only 5 parameters")
+
+    if order > 4:
+        raise ValueError("Order exceeds 4")
+
+    a = param[0]
+    b = param[1]
+    if order == -1:
+        return a + b*x + nlSine(x, order, param[2:], **kwargs)
+    if order == 0:
+        return 1
+    if order == 1:
+        return x
+    else:
+        return nlSine(x, order-2, param[2:], **kwargs)
+
+
+
+
 def nlManySine(x, order, param, **kwargs):
 
     if len(param) % 3 != 0:
